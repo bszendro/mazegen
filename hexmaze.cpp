@@ -55,14 +55,19 @@ static Point2D nodeCenter(HexMaze::NodeIndex node, double rad, Point2D margin) {
 }
 
 void HexMaze::Draw(IPainter* painter, double rad, int x_margin, int y_margin) const {
-    const double sqrt3 = sqrt(3.0);
-    const double w = sqrt3*rad;
+    const auto sqrt3 = sqrt(3.0);
+    const auto h = sqrt3*rad;
+
+    const auto width = static_cast<int>(0.5*rad + 1.5*rad*cols_ + 2*x_margin);
+    const auto height = static_cast<int>(0.5*h + h*rows_ + 2*y_margin);
+    painter->BeginDraw(width, height);
+
     for (int i = 0; i < rows_; i++) {
         for (int j = 0; j < cols_; j++) {
-            const double x_0 = 1.5*rad*j + x_margin;
-            const double y_0 = (j % 2) == 0
-                ? w*i + y_margin
-                : w*i + w/2 + y_margin;
+            const auto x_0 = rad + 1.5*rad*j + x_margin;
+            const auto y_0 = (j % 2) == 0
+                ? 0.5*h + h*i + y_margin
+                : 1.0*h + h*i + y_margin;
 
             const Point2D p1{ static_cast<int>(x_0 - rad), static_cast<int>(y_0) };
             const Point2D p2{ static_cast<int>(x_0 - 0.5*rad), static_cast<int>(y_0 + sqrt3/2.0*rad) };
@@ -130,6 +135,8 @@ void HexMaze::Draw(IPainter* painter, double rad, int x_margin, int y_margin) co
             }
         }
     }
+
+    painter->EndDraw();
 }
 
 static ENode toNode(char c) {

@@ -1,11 +1,13 @@
 #include "svg_painter.h"
 
-SvgPainter::SvgPainter(std::ostream& os, int width, int height): os_(os) {
+SvgPainter::SvgPainter(std::ostream& os): os_(os) {}
+
+void SvgPainter::BeginDraw(int width, int height) {
     os_ << "<!DOCTYPE svg>\n";
     os_ << "<svg height=\"" << height << "\" width=\"" << width << "\" xmlns=\"http://www.w3.org/2000/svg\" style=\"background-color:white\">\n";
 }
 
-SvgPainter::~SvgPainter() {
+void SvgPainter::EndDraw() {
     os_ << "</svg>\n";
 }
 

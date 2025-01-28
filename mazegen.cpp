@@ -9,7 +9,7 @@ using namespace std;
 
 int main()
 {
-    HexMaze m(300, 200);
+    HexMaze m(10, 20);
 
     {
         CreateMazeWilson<HexMaze> maze_gen(0);
@@ -18,8 +18,8 @@ int main()
         std::ofstream ofs;
         ofs.open("test.svg", std::ofstream::out);
 
-        SvgPainter painter(ofs, 3000, 4000);
-        m.Draw(&painter, 10, 50, 50);
+        SvgPainter painter(ofs);
+        m.Draw(&painter, 30, 50, 50);
     }
 
     return 0;
