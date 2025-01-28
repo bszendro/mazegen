@@ -164,8 +164,6 @@ ENode HexMaze::getNode(NodeIndex node) const {
 }
 
 void HexMaze::setNode(NodeIndex node, ENode val) {
-    if (val == ENode::Visited)
-        std::cout << "  setNodeVisited " << node.i << "," << node.j << "\n";
     nodes_[node.i][node.j] = fromNode(val);
 }
 
@@ -205,9 +203,6 @@ static char fromEdge(EEdge edge) {
 
 void HexMaze::setEdge(NodeIndex node, EdgeIndex edge, EEdge val)
 {
-    if (val == EEdge::Visited)
-        std::cout << "  setEdgeVisited " << node.i << "," << node.j << ": " << edge << "\n";
-
     const auto i = node.i;
     const auto j = node.j;
     const auto c = fromEdge(val);
@@ -245,10 +240,10 @@ HexMaze::NodeIndex HexMaze::getOpenNode() const
     return invalidNode();
 }
 
-HexMaze::NodeIndex HexMaze::nextNode(NodeIndex node, EdgeIndex edge) const
+HexMaze::NodeIndex HexMaze::nextNode(NodeIndex node, EdgeIndex edge)
 {
-    const int i = node.i;
-    const int j = node.j;
+    const auto i = node.i;
+    const auto j = node.j;
     switch (edge) {
         case 1:
             if ((j % 2) == 0)
@@ -272,9 +267,8 @@ HexMaze::NodeIndex HexMaze::nextNode(NodeIndex node, EdgeIndex edge) const
                 return {i-1, j-1};
             else
                 return {i, j-1};
-        default:
-            assert(0);
     }
+    return invalidNode();
 }
 
 HexMaze::NodeIndex HexMaze::invalidNode()

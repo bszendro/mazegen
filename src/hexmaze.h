@@ -35,7 +35,7 @@ public:
     void setEdge(NodeIndex node, EdgeIndex edge, EEdge val);
 
     NodeIndex getOpenNode() const;
-    NodeIndex nextNode(NodeIndex node, EdgeIndex edge) const;
+    static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);
     static NodeIndex invalidNode();
 
 private:
