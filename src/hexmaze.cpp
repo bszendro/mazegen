@@ -42,17 +42,17 @@ static constexpr bool isEdgeVisible(char edge) {
     return edge == EDGE_OPEN || edge == EDGE_INVALID;
 }
 
-static Point2D nodeCenter(HexMaze::NodeIndex node, double rad, Point2D margin) {
-    const auto i = node.i;
-    const auto j = node.j;
-    const double sqrt3 = sqrt(3.0);
-    const double w = sqrt3*rad;
-    const double x_0 = 1.5*rad*j + margin.x;
-    const double y_0 = (j % 2) == 0
-        ? w*i + margin.y
-        : w*i + w/2 + margin.y;
-    return {static_cast<int>(x_0), static_cast<int>(y_0)};
-}
+// static Point2D nodeCenter(HexMaze::NodeIndex node, double rad, Point2D margin) {
+//     const auto i = node.i;
+//     const auto j = node.j;
+//     const double sqrt3 = sqrt(3.0);
+//     const double w = sqrt3*rad;
+//     const double x_0 = 1.5*rad*j + margin.x;
+//     const double y_0 = (j % 2) == 0
+//         ? w*i + margin.y
+//         : w*i + w/2 + margin.y;
+//     return {static_cast<int>(x_0), static_cast<int>(y_0)};
+// }
 
 void HexMaze::Draw(IPainter* painter, double rad, int x_margin, int y_margin) const {
     const auto sqrt3 = sqrt(3.0);
@@ -101,8 +101,8 @@ void HexMaze::Draw(IPainter* painter, double rad, int x_margin, int y_margin) co
                 : edges_[i+1][3*j + 2];
 
             const string line_style{ "stroke:black;stroke-width:2" };
-            const auto center = Point2D{ static_cast<int>(x_0), static_cast<int>(y_0) };
-            const auto margin = Point2D{ x_margin, y_margin };
+            // const auto center = Point2D{ static_cast<int>(x_0), static_cast<int>(y_0) };
+            // const auto margin = Point2D{ x_margin, y_margin };
             if (isEdgeVisible(e1)) {
                 painter->DrawLine(p1, p2, line_style);
                 // const auto next = nodeCenter(nextNode({i, j}, 1), rad, margin);
