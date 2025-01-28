@@ -62,7 +62,6 @@ void CreateMazeWilson<Maze>::createMaze(Maze& maze) {
             break;
         }
         maze.setNode(start_node, ENode::OnPath);
-        std::cout << "start node " << start_node.i << "," << start_node.j << "\n";
 
         // Pick a random edge and make a step to the next node
         const auto step = getRandomStep(maze, start_node);
@@ -124,14 +123,10 @@ template< typename Maze >
 CreateMazeWilson<Maze>::PathItem CreateMazeWilson<Maze>::getRandomStep(const Maze& maze, NodeIndex node) {
     open_edges_.clear();
     maze.getOpenEdges(node, open_edges_);
-    std::cout << "open edges " << node.i << "," << node.j << ":";
-    for (const auto& item : open_edges_) std::cout << item << " ";
-    std::cout << "\n";
     assert(!open_edges_.empty());
 
     std::uniform_int_distribution<int> dist(0, open_edges_.size() - 1);
     const auto edge = open_edges_[dist(random_engine_)];
     const auto target_node = maze.nextNode(node, edge);
-    std::cout << "edge " << edge << " goes to " << target_node.i << "," << target_node.j << "\n";
     return {edge, target_node};
 }

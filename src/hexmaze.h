@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "matrix.h"
 #include "gen_wilson.h"
 
@@ -23,6 +25,7 @@ public:
     };
 
     using EdgeIndex = int;
+    using EdgeList = std::vector<HexMaze::EdgeIndex>;
 
     HexMaze(int rows, int cols);
 
