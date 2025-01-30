@@ -53,7 +53,7 @@ private:
 };
 
 template< typename Maze >
-CreateMazeWilson<Maze>::CreateMazeWilson(int random_seed) : random_engine_(random_seed) {}
+CreateMazeWilson<Maze>::CreateMazeWilson(int random_seed): random_engine_(random_seed) {}
 
 template< typename Maze >
 CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& maze) {
@@ -90,7 +90,6 @@ CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& m
 
                 // Delete last item
                 assert(!current_path_.empty());
-                maze.setNode(current_path_.back().target_node, ENode::Open);
                 const auto src_node = current_path_.size() >= 2
                     ? current_path_[current_path_.size() - 2].target_node
                     : start_node;

@@ -16,8 +16,13 @@ struct IPainter
     {
         OpenCell,       // Cell not in the maze
         VisitedCell,    // Cell added to the maze
+        OnPathCell,
         Wall,           // Wall between cells
         Edge,           // Line across cells to show the path
+
+        MarkedOpenCell,
+        MarkedVisitedCell,
+        MarkedOnPathCell,
     };
 
     virtual ~IPainter() {}

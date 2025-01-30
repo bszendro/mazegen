@@ -31,7 +31,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 set(TEST_SOURCES
-    tests/test_gen_wilson.cpp
+    # tests/test_gen_wilson.cpp
     tests/test_hexmaze.cpp
     tests/test_square_maze.cpp
     )

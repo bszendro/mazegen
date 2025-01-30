@@ -41,9 +41,18 @@ public:
     static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);
     static NodeIndex invalidNode();
 
+    void markRegion(NodeIndex top_left, NodeIndex bottom_right);
+    using OnChangeHook = std::function<void ()>;
+    void setOnChangeHook(OnChangeHook&& on_change_hook);
+
 private:
     int rows_;
     int cols_;
     Matrix<char> nodes_;
     Matrix<char> edges_; // Each entry represents an edge in the dual graph (a wall in the maze)
+
+    NodeIndex marked_top_left_;
+    NodeIndex marked_bottom_right_;
+
+    OnChangeHook on_change_hook_;
 };
