@@ -19,8 +19,13 @@ static string toSvgStyle(IPainter::EStyle style) {
     switch (style) {
         case IPainter::EStyle::OpenCell: return "fill:darkgray";
         case IPainter::EStyle::VisitedCell: return "fill:white";
+        case IPainter::EStyle::OnPathCell: return "fill:lightgray";
         case IPainter::EStyle::Wall: return "stroke:black;stroke-width:4;stroke-linecap:round";
         case IPainter::EStyle::Edge: return "stroke:#ff0000;stroke-width:2";
+
+        case IPainter::EStyle::MarkedOpenCell: return "fill:darkred";
+        case IPainter::EStyle::MarkedVisitedCell: return "fill:crimson";
+        case IPainter::EStyle::MarkedOnPathCell: return "fill:deeppink";
         default:
             assert(0);
     }

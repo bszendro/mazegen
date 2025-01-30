@@ -36,6 +36,7 @@ public:
 
     void getOpenEdges(NodeIndex node, EdgeList& edges) const;
     void setEdge(NodeIndex node, EdgeIndex edge, EEdge val);
+    EEdge getEdge(NodeIndex node, EdgeIndex edge) const;
 
     NodeIndex getOpenNode() const;
     static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);

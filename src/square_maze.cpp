@@ -113,6 +113,21 @@ void SquareMaze::setEdge(NodeIndex node, EdgeIndex edge, EEdge val) {
     }
 }
 
+EEdge SquareMaze::getEdge(NodeIndex node, EdgeIndex edge) const {
+    const auto i = node.i;
+    const auto j = node.j;
+    int intval = 0;
+    switch (edge) {
+        case 1: intval = edges_[i+1][2*j + 2]; break;
+        case 2: intval = edges_[i+1][2*j + 3]; break;
+        case 3: intval = edges_[i][2*j + 2]; break;
+        case 4: intval = edges_[i+1][2*j + 1]; break;
+        default:
+            assert(0);
+    }
+    return static_cast<EEdge>(intval);
+}
+
 SquareMaze::NodeIndex SquareMaze::getOpenNode() const {
     for (int i = 0; i < nodes_.rows(); i++) {
         for (int j = 0; j < nodes_.cols(); j++) {

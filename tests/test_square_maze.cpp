@@ -2,8 +2,19 @@
 
 #include <gtest/gtest.h>
 
+// All nodes are open initially
+TEST(SquareMazeTest, AllNodesOpen) {
+    SquareMaze m(3, 3);
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            EXPECT_EQ(m.getNode({i, j}), ENode::Open);
+        }
+    }
+}
+
 // It is not possible to get across the border of the maze
-TEST(SquareMazeTest, BorderEdgesTest) {
+TEST(SquareMazeTest, BorderEdges) {
     SquareMaze m(3, 3);
 
     SquareMaze::EdgeList edges;
@@ -19,7 +30,7 @@ TEST(SquareMazeTest, BorderEdgesTest) {
 }
 
 // getOpenNode returns an open node as long as there is one
-TEST(SquareMazeTest, GetOpenNodeTest) {
+TEST(SquareMazeTest, GetOpenNode) {
     SquareMaze m(2, 1);
 
     const auto node1 = m.getOpenNode();
@@ -33,7 +44,7 @@ TEST(SquareMazeTest, GetOpenNodeTest) {
 }
 
 // getNode/setNode are using the same indexes under the hood
-TEST(SquareMazeTest, GetSetNodeTest) {
+TEST(SquareMazeTest, GetSetNode) {
     SquareMaze m(2, 2);
 
     const auto node = SquareMaze::NodeIndex{0, 0};
@@ -94,3 +105,4 @@ INSTANTIATE_TEST_SUITE_P(InvalidCases, SquareMazeNextNodeTest, ::testing::Values
     NextNodeTestParam{{0, 0}, 5, SquareMaze::invalidNode()}));
 
 // TODO: DrawTest
+// TODO: {0, 0} edge 1 is the same as {1, 0} edge 4...

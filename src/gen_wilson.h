@@ -20,47 +20,56 @@ enum class EEdge
     Invalid,
 };
 
+enum class ECreateMazeResult
+{
+    Ok,
+    ErrNoFirstOpenNode, // All nodes of the maze are already visited
+    ErrNoOpenEdges, // We reached a node which doesn't have any open edges
+};
+
+// TODO: what is this? document
 template< typename Maze >
 class CreateMazeWilson
 {
 public:
-    enum class ECreateResult
-    {
-        Ok,
-        ErrNoFirstOpenNode,
-    };
+    explicit CreateMazeWilson(unsigned random_seed);
 
-    explicit CreateMazeWilson(int random_seed);
-
-    ECreateResult createMaze(Maze& maze);
+    ECreateMazeResult createMaze(Maze& maze);
 
 private:
     using NodeIndex = Maze::NodeIndex;
     using EdgeIndex = Maze::EdgeIndex;
 
+    // Represents a single step on a path
     struct PathItem
     {
+        // The edge from the node in the previous step to the current node.
+        // If there is no previous step, it is the edge from the start node
         EdgeIndex edge;
+        // The node reached in this step
         NodeIndex target_node;
     };
 
-    PathItem getRandomStep(const Maze& maze, NodeIndex node);
+    // Find a random step from the given node. Returns false if there are no open edges from `node`
+    bool getRandomStep(const Maze& maze, NodeIndex node, PathItem& step);
 
+    // This variable is local to getRandomStep but is a member to avoid reallocating the array on each call
     std::vector<EdgeIndex> open_edges_;
+    // The current random walk
     std::vector<PathItem> current_path_;
 
     std::mt19937 random_engine_;
 };
 
 template< typename Maze >
-CreateMazeWilson<Maze>::CreateMazeWilson(int random_seed) : random_engine_(random_seed) {}
+CreateMazeWilson<Maze>::CreateMazeWilson(unsigned random_seed): random_engine_(random_seed) {}
 
 template< typename Maze >
-CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& maze) {
+ECreateMazeResult CreateMazeWilson<Maze>::createMaze(Maze& maze) {
     // Add a random node to the graph
     const auto first_node = maze.getOpenNode();
     if (first_node == Maze::invalidNode()) {
-        return ECreateResult::ErrNoFirstOpenNode;
+        return ECreateMazeResult::ErrNoFirstOpenNode;
     }
     maze.setNode(first_node, ENode::Visited);
 
@@ -73,7 +82,10 @@ CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& m
         maze.setNode(start_node, ENode::OnPath);
 
         // Pick a random edge and make a step to the next node
-        const auto step = getRandomStep(maze, start_node);
+        PathItem step;
+        if (!getRandomStep(maze, start_node, step)) {
+            return ECreateMazeResult::ErrNoOpenEdges;
+        }
         maze.setEdge(start_node, step.edge, EEdge::OnPath);
         current_path_.clear();
         current_path_.emplace_back(step);
@@ -90,7 +102,6 @@ CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& m
 
                 // Delete last item
                 assert(!current_path_.empty());
-                maze.setNode(current_path_.back().target_node, ENode::Open);
                 const auto src_node = current_path_.size() >= 2
                     ? current_path_[current_path_.size() - 2].target_node
                     : start_node;
@@ -112,7 +123,10 @@ CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& m
             }
 
             // Pick a random edge and make a step to the next node
-            const auto step = getRandomStep(maze, last_node);
+            PathItem step;
+            if (!getRandomStep(maze, last_node, step)) {
+                return ECreateMazeResult::ErrNoOpenEdges;
+            }
             maze.setEdge(last_node, step.edge, EEdge::OnPath);
             current_path_.emplace_back(step);
         }
@@ -126,17 +140,21 @@ CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& m
             prev_node = step.target_node;
         }
     }
-    return ECreateResult::Ok;
+
+    return ECreateMazeResult::Ok;
 }
 
 template< typename Maze >
-CreateMazeWilson<Maze>::PathItem CreateMazeWilson<Maze>::getRandomStep(const Maze& maze, NodeIndex node) {
+bool CreateMazeWilson<Maze>::getRandomStep(const Maze& maze, NodeIndex node, PathItem& step) {
     open_edges_.clear();
     maze.getOpenEdges(node, open_edges_);
-    assert(!open_edges_.empty()); // TODO: this should return an error instead of an assert
+    if (open_edges_.empty()) {
+        return false;
+    }
 
     std::uniform_int_distribution<int> dist(0, open_edges_.size() - 1);
     const auto edge = open_edges_[dist(random_engine_)];
     const auto target_node = maze.nextNode(node, edge);
-    return {edge, target_node};
+    step = {edge, target_node};
+    return true;
 }

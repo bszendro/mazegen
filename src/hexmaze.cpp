@@ -19,6 +19,8 @@ HexMaze::HexMaze(int rows, int cols)
     , cols_(cols)
     , nodes_(rows, cols)
     , edges_(rows+1, 3*(cols+2))
+    , marked_top_left_(invalidNode())
+    , marked_bottom_right_(invalidNode())
 {
     for (int j = 0; j < edges_.cols() - 2; j += 6) {
         edges_[0][j] = EDGE_INVALID;
@@ -44,17 +46,17 @@ static bool isEdgeVisible(char edge) {
     return edge == EDGE_OPEN || edge == EDGE_INVALID;
 }
 
-// static Point2D nodeCenter(HexMaze::NodeIndex node, double rad, Point2D margin) {
-//     const auto i = node.i;
-//     const auto j = node.j;
-//     const double sqrt3 = sqrt(3.0);
-//     const double w = sqrt3*rad;
-//     const double x_0 = 1.5*rad*j + margin.x;
-//     const double y_0 = (j % 2) == 0
-//         ? w*i + margin.y
-//         : w*i + w/2 + margin.y;
-//     return {static_cast<int>(x_0), static_cast<int>(y_0)};
-// }
+static Point2D nodeCenter(HexMaze::NodeIndex node, double rad, int margin_x, int margin_y) {
+    const auto i = node.i;
+    const auto j = node.j;
+    const auto sqrt3 = sqrt(3.0);
+    const auto h = sqrt3*rad;
+    const auto x_0 = rad + 1.5*rad*j + margin_x;
+    const auto y_0 = (j % 2) == 0
+        ? 0.5*h + h*i + margin_y
+        : 1.0*h + h*i + margin_y;
+    return {static_cast<int>(x_0), static_cast<int>(y_0)};
+}
 
 void HexMaze::Draw(IPainter* painter, double rad, int margin_x, int margin_y) const {
     const auto sqrt3 = sqrt(3.0);
@@ -78,16 +80,26 @@ void HexMaze::Draw(IPainter* painter, double rad, int margin_x, int margin_y) co
             const Point2D p5{ static_cast<int>(x_0 + 0.5*rad), static_cast<int>(y_0 - sqrt3/2.0*rad) };
             const Point2D p6{ static_cast<int>(x_0 - 0.5*rad), static_cast<int>(y_0 - sqrt3/2.0*rad) };
 
-            switch (nodes_[i][j]) {
-                case NODE_OPEN:
-                    painter->DrawPoly({p5, p4, p3, p2, p1, p6}, EStyle::OpenCell);
-                    break;
-                case NODE_VISITED:
-                    painter->DrawPoly({p5, p4, p3, p2, p1, p6}, EStyle::VisitedCell);
-                    break;
-                default:
-                    assert(0);
+            EStyle style;
+            if (marked_top_left_.i <= i && i < marked_bottom_right_.i &&
+                    marked_top_left_.j <= j && j < marked_bottom_right_.j) {
+                switch (nodes_[i][j]) {
+                    case NODE_OPEN: style = EStyle::MarkedOpenCell; break;
+                    case NODE_VISITED: style = EStyle::MarkedVisitedCell; break;
+                    case NODE_ONPATH: style = EStyle::MarkedOnPathCell; break;
+                    default:
+                        assert(0);
+                }
+            } else {
+                switch (nodes_[i][j]) {
+                    case NODE_OPEN: style = EStyle::OpenCell; break;
+                    case NODE_VISITED: style = EStyle::VisitedCell; break;
+                    case NODE_ONPATH: style = EStyle::OnPathCell; break;
+                    default:
+                        assert(0);
+                }
             }
+            painter->DrawPoly({p5, p4, p3, p2, p1, p6}, style);
 
             const char e1 = edges_[i+1][3*j + 3];
             const char e2 = edges_[i+1][3*j + 4];
@@ -100,8 +112,7 @@ void HexMaze::Draw(IPainter* painter, double rad, int margin_x, int margin_y) co
                 ? edges_[i][3*j + 2]
                 : edges_[i+1][3*j + 2];
 
-            // const auto center = Point2D{ static_cast<int>(x_0), static_cast<int>(y_0) };
-            // const auto margin = Point2D{ margin_x, margin_y };
+            const auto center = Point2D{ static_cast<int>(x_0), static_cast<int>(y_0) };
             if (isEdgeVisible(e1)) {
                 painter->DrawLine(p1, p2, EStyle::Wall);
                 // const auto next = nodeCenter(nextNode({i, j}, 1), rad, margin);
@@ -132,6 +143,13 @@ void HexMaze::Draw(IPainter* painter, double rad, int margin_x, int margin_y) co
                 // const auto next = nodeCenter(nextNode({i, j}, 6), rad, margin);
                 // painter->DrawLine(center, next, "stroke:#00ff00;stroke-width:2");
             }
+
+            if (e1 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 1), rad, margin_x, margin_y), EStyle::Edge);
+            if (e2 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 2), rad, margin_x, margin_y), EStyle::Edge);
+            if (e3 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 3), rad, margin_x, margin_y), EStyle::Edge);
+            if (e4 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 4), rad, margin_x, margin_y), EStyle::Edge);
+            if (e5 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 5), rad, margin_x, margin_y), EStyle::Edge);
+            if (e6 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 6), rad, margin_x, margin_y), EStyle::Edge);
         }
     }
 
@@ -164,10 +182,13 @@ ENode HexMaze::getNode(NodeIndex node) const {
 
 void HexMaze::setNode(NodeIndex node, ENode val) {
     nodes_[node.i][node.j] = fromNode(val);
+
+    if (on_change_hook_) {
+        on_change_hook_();
+    }
 }
 
-void HexMaze::getOpenEdges(NodeIndex node, vector<EdgeIndex>& edges) const
-{
+void HexMaze::getOpenEdges(NodeIndex node, vector<EdgeIndex>& edges) const {
     const auto i = node.i;
     const auto j = node.j;
     const char e1 = edges_[i+1][3*j + 3];
@@ -200,8 +221,7 @@ static char fromEdge(EEdge edge) {
     }
 }
 
-void HexMaze::setEdge(NodeIndex node, EdgeIndex edge, EEdge val)
-{
+void HexMaze::setEdge(NodeIndex node, EdgeIndex edge, EEdge val) {
     const auto i = node.i;
     const auto j = node.j;
     const auto c = fromEdge(val);
@@ -225,10 +245,13 @@ void HexMaze::setEdge(NodeIndex node, EdgeIndex edge, EEdge val)
         default:
             assert(0);
     }
+
+    if (on_change_hook_) {
+        on_change_hook_();
+    }
 }
 
-HexMaze::NodeIndex HexMaze::getOpenNode() const
-{
+HexMaze::NodeIndex HexMaze::getOpenNode() const {
     for (int i = 0; i < nodes_.rows(); i++) {
         for (int j = 0; j < nodes_.cols(); j++) {
             if (nodes_[i][j] == NODE_OPEN) {
@@ -239,8 +262,7 @@ HexMaze::NodeIndex HexMaze::getOpenNode() const
     return invalidNode();
 }
 
-HexMaze::NodeIndex HexMaze::nextNode(NodeIndex node, EdgeIndex edge)
-{
+HexMaze::NodeIndex HexMaze::nextNode(NodeIndex node, EdgeIndex edge) {
     const auto i = node.i;
     const auto j = node.j;
     switch (edge) {
@@ -270,7 +292,15 @@ HexMaze::NodeIndex HexMaze::nextNode(NodeIndex node, EdgeIndex edge)
     return invalidNode();
 }
 
-HexMaze::NodeIndex HexMaze::invalidNode()
-{
-    return NodeIndex(-1, -1);
+HexMaze::NodeIndex HexMaze::invalidNode() {
+    return {-1, -1};
+}
+
+void HexMaze::markRegion(NodeIndex top_left, NodeIndex bottom_right) {
+    marked_top_left_ = top_left;
+    marked_bottom_right_ = bottom_right;
+}
+
+void HexMaze::setOnChangeHook(OnChangeHook&& on_change_hook) {
+    on_change_hook_ = std::move(on_change_hook);
 }
