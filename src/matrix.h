@@ -3,54 +3,55 @@
 #include <string.h>
 #include <assert.h>
 
+template< typename T >
 class MatrixRow
 {
 public:
-    char& operator[](int j)
+    MatrixRow(T *m, int cols, int row): m_(m), cols_(cols), row_(row) {}
+
+    T& operator[](int j)
     {
         assert(0 <= j && j < cols_);
         return m_[cols_ * row_ + j];
     }
 
 private:
-    friend class Matrix;
-    MatrixRow(char *m, int cols, int row): m_(m), cols_(cols), row_(row) {}
-
-    char* m_;
+    T* m_;
     int cols_;
     int row_;
 };
 
+template< typename T >
 class ConstMatrixRow
 {
 public:
-    char operator[](int j) const
+    ConstMatrixRow(const T *m, int cols, int row): m_(m), cols_(cols), row_(row) {}
+
+    T operator[](int j) const
     {
         assert(0 <= j && j < cols_);
         return m_[cols_ * row_ + j];
     }
 
 private:
-    friend class Matrix;
-    ConstMatrixRow(const char *m, int cols, int row): m_(m), cols_(cols), row_(row) {}
-
-    const char* m_;
+    const T* m_;
     int cols_;
     int row_;
 };
 
+template< typename T >
 class Matrix
 {
 public:
     Matrix(const Matrix&) = delete;
     Matrix& operator=(const Matrix&) = delete;
 
-    Matrix(int rows, int cols, char init_value): rows_(rows), cols_(cols)
+    Matrix(int rows, int cols): rows_(rows), cols_(cols)
     {
         assert(rows > 0);
         assert(cols > 0);
-        m_ = new char[rows * cols];
-        memset(m_, init_value, rows * cols);
+        m_ = new T[rows * cols];
+        memset(m_, 0, rows * cols * sizeof(T));
     }
 
     ~Matrix()
@@ -61,13 +62,13 @@ public:
         }
     }
 
-    ConstMatrixRow operator[](int i) const
+    ConstMatrixRow<T> operator[](int i) const
     {
         assert(0 <= i && i < rows_);
         return {m_, cols_, i};
     }
 
-    MatrixRow operator[](int i)
+    MatrixRow<T> operator[](int i)
     {
         assert(0 <= i && i < rows_);
         return {m_, cols_, i};
@@ -79,5 +80,5 @@ public:
 private:
     int rows_;
     int cols_;
-    char* m_;
+    T* m_;
 };

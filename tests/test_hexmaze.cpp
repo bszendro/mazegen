@@ -48,10 +48,10 @@ TEST(HexMazeTest, GetSetNodeTest) {
 
 using SetEdgeTestParam = HexMaze::NodeIndex;
 
-class SetEdgeTest : public ::testing::TestWithParam<SetEdgeTestParam> {};
+class HexMazeSetEdgeTest : public ::testing::TestWithParam<SetEdgeTestParam> {};
 
 // getOpenEdges/setEdge are using the same indexes under the hood
-TEST_P(SetEdgeTest, UsesRightIndexes) {
+TEST_P(HexMazeSetEdgeTest, UsesRightIndexes) {
     HexMaze m(4, 4);
 
     const auto& node = GetParam();
@@ -67,7 +67,7 @@ TEST_P(SetEdgeTest, UsesRightIndexes) {
     }
 }
 
-INSTANTIATE_TEST_SUITE_P(ValidCases, SetEdgeTest, ::testing::Values(
+INSTANTIATE_TEST_SUITE_P(ValidCases, HexMazeSetEdgeTest, ::testing::Values(
     SetEdgeTestParam{1, 1},
     SetEdgeTestParam{1, 2},
     SetEdgeTestParam{2, 1},
@@ -75,15 +75,15 @@ INSTANTIATE_TEST_SUITE_P(ValidCases, SetEdgeTest, ::testing::Values(
 
 using NextNodeTestParam = std::tuple<HexMaze::NodeIndex, HexMaze::EdgeIndex, HexMaze::NodeIndex>;
 
-class NextNodeTest : public ::testing::TestWithParam<NextNodeTestParam> {};
+class HexMazeNextNodeTest : public ::testing::TestWithParam<NextNodeTestParam> {};
 
 // nextNode returns the correct node index along the given edge
-TEST_P(NextNodeTest, ReturnsRightIndexes) {
+TEST_P(HexMazeNextNodeTest, ReturnsRightIndexes) {
     const auto& p = GetParam();
     EXPECT_EQ(HexMaze::nextNode(std::get<0>(p), std::get<1>(p)), std::get<2>(p));
 }
 
-INSTANTIATE_TEST_SUITE_P(ValidCases, NextNodeTest, ::testing::Values(
+INSTANTIATE_TEST_SUITE_P(ValidCases, HexMazeNextNodeTest, ::testing::Values(
     NextNodeTestParam{{0, 0}, 1, {0, -1}},
     NextNodeTestParam{{0, 0}, 2, {1, 0}},
     NextNodeTestParam{{0, 0}, 3, {0, 1}},
@@ -112,7 +112,7 @@ INSTANTIATE_TEST_SUITE_P(ValidCases, NextNodeTest, ::testing::Values(
     NextNodeTestParam{{1, 1}, 5, {0, 1}},
     NextNodeTestParam{{1, 1}, 6, {1, 0}}));
 
-INSTANTIATE_TEST_SUITE_P(InvalidCases, NextNodeTest, ::testing::Values(
+INSTANTIATE_TEST_SUITE_P(InvalidCases, HexMazeNextNodeTest, ::testing::Values(
     NextNodeTestParam{{0, 0}, 0, HexMaze::invalidNode()},
     NextNodeTestParam{{0, 0}, 7, HexMaze::invalidNode()},
     NextNodeTestParam{{0, 1}, 0, HexMaze::invalidNode()},

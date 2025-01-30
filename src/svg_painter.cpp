@@ -1,6 +1,10 @@
 #include "svg_painter.h"
 
-SvgPainter::SvgPainter(std::ostream& os): os_(os) {}
+#include <assert.h>
+
+using namespace std;
+
+SvgPainter::SvgPainter(ostream& os): os_(os) {}
 
 void SvgPainter::BeginDraw(int width, int height) {
     os_ << "<!DOCTYPE svg>\n";
@@ -11,18 +15,29 @@ void SvgPainter::EndDraw() {
     os_ << "</svg>\n";
 }
 
-void SvgPainter::DrawLine(const Point2D& p1, const Point2D& p2, const std::string& style) {
+static string toSvgStyle(IPainter::EStyle style) {
+    switch (style) {
+        case IPainter::EStyle::OpenCell: return "fill:darkgray";
+        case IPainter::EStyle::VisitedCell: return "fill:white";
+        case IPainter::EStyle::Wall: return "stroke:black;stroke-width:4;stroke-linecap:round";
+        case IPainter::EStyle::Edge: return "stroke:#ff0000;stroke-width:2";
+        default:
+            assert(0);
+    }
+}
+
+void SvgPainter::DrawLine(const Point2D& p1, const Point2D& p2, EStyle style) {
     os_ << "<line x1=\"" << p1.x
         << "\" y1=\"" << p1.y
         << "\" x2=\"" << p2.x
         << "\" y2=\"" << p2.y
-        << "\" style=\"" << style << "\" />\n";
+        << "\" style=\"" << toSvgStyle(style) << "\" />\n";
 }
 
-void SvgPainter::DrawPoly(const std::vector<Point2D>& vertices, const std::string& style) {
+void SvgPainter::DrawPoly(const vector<Point2D>& vertices, EStyle style) {
     os_ << "<polygon points=\"";
     for (const auto v : vertices) {
         os_ << v.x << ',' << v.y << ' ';
     }
-    os_ << "\" style=\"" << style << "\" />\n";
+    os_ << "\" style=\"" << toSvgStyle(style) << "\" />\n";
 }

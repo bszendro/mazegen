@@ -7,7 +7,7 @@
 
 struct IPainter;
 
-class HexMaze
+class SquareMaze
 {
 public:
     struct NodeIndex
@@ -25,16 +25,16 @@ public:
     };
 
     using EdgeIndex = int;
-    using EdgeList = std::vector<HexMaze::EdgeIndex>;
+    using EdgeList = std::vector<EdgeIndex>;
 
-    HexMaze(int rows, int cols);
+    SquareMaze(int rows, int cols);
 
-    void Draw(IPainter* painter, double rad, int margin_x, int margin_y) const;
+    void Draw(IPainter* painter, int block_width, int block_height, int margin_x, int margin_y) const;
 
     ENode getNode(NodeIndex node) const;
     void setNode(NodeIndex node, ENode val);
 
-    void getOpenEdges(NodeIndex node, std::vector<EdgeIndex>& edges) const;
+    void getOpenEdges(NodeIndex node, EdgeList& edges) const;
     void setEdge(NodeIndex node, EdgeIndex edge, EEdge val);
 
     NodeIndex getOpenNode() const;
@@ -42,8 +42,17 @@ public:
     static NodeIndex invalidNode();
 
 private:
+    static constexpr auto NODE_OPEN = static_cast<int>(ENode::Open);
+    static constexpr auto NODE_VISITED = static_cast<int>(ENode::Visited);
+
+    static constexpr auto EDGE_OPEN = static_cast<int>(EEdge::Open);
+    static constexpr auto EDGE_ONPATH = static_cast<int>(EEdge::OnPath);
+    static constexpr auto EDGE_INVALID = static_cast<int>(EEdge::Invalid);
+
+    static bool isEdgeVisible(int edge);
+
     int rows_;
     int cols_;
-    Matrix<char> nodes_;
-    Matrix<char> edges_; // Each entry represents an edge in the dual graph (a wall in the maze)
+    Matrix<int> nodes_;
+    Matrix<int> edges_;
 };

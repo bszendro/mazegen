@@ -8,12 +8,14 @@ add_compile_options(-Wall -Wextra -pedantic -Werror)
 
 set(SOURCES
     src/hexmaze.cpp
+    src/square_maze.cpp
     src/svg_painter.cpp
     )
 
 set(HEADERS
     src/gen_wilson.h
     src/hexmaze.h
+    src/square_maze.h
     src/matrix.h
     src/svg_painter.h
     )
@@ -31,6 +33,7 @@ find_package(GTest REQUIRED)
 set(TEST_SOURCES
     tests/test_gen_wilson.cpp
     tests/test_hexmaze.cpp
+    tests/test_square_maze.cpp
     )
 
 add_executable(test_mazegen ${TEST_SOURCES} ${SOURCES} ${HEADERS})

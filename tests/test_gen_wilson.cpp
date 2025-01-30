@@ -8,6 +8,7 @@ using ::testing::InSequence;
 using ::testing::Return;
 using ::testing::SetArgReferee;
 
+// TODO: Do we need this mock? How about a fake instead? What do you want to test?
 class MockMaze {
 public:
     using NodeIndex = int;
@@ -60,10 +61,12 @@ TEST(GenWilsonTest, OneStepFromStart) {
         const auto start_node = 456;
         const auto edge = 42;
 
+        // First node is added automatically
         EXPECT_CALL(m, getOpenNode())
             .WillOnce(Return(first_node));
         EXPECT_CALL(m, setNode(first_node, ENode::Visited));
 
+        // Second open node will start a path
         EXPECT_CALL(m, getOpenNode())
             .WillOnce(Return(start_node));
         EXPECT_CALL(m, setNode(start_node, ENode::OnPath));
@@ -72,13 +75,16 @@ TEST(GenWilsonTest, OneStepFromStart) {
         EXPECT_CALL(m, nextNode(start_node, edge))
             .WillOnce(Return(first_node));
         EXPECT_CALL(m, setEdge(start_node, edge, EEdge::OnPath));
+        // The path reached an already visited node, it can be added now to the maze
         EXPECT_CALL(m, getNode(first_node))
             .WillOnce(Return(ENode::Visited));
 
+        // Adding the path to the maze
         EXPECT_CALL(m, setNode(start_node, ENode::Visited));
         EXPECT_CALL(m, setEdge(start_node, edge, EEdge::Visited));
         EXPECT_CALL(m, setNode(first_node, ENode::Visited));
 
+        // There are no more open nodes
         EXPECT_CALL(m, getOpenNode())
             .WillOnce(Return(MockMaze::invalidNode()));
     }
@@ -86,3 +92,35 @@ TEST(GenWilsonTest, OneStepFromStart) {
     CreateMazeWilson<MockMaze> maze_gen(0);
     EXPECT_EQ(maze_gen.createMaze(m), CreateMazeWilson<MockMaze>::ECreateResult::Ok);
 }
+
+// class SingleRowMaze
+// {
+// public:
+//     using NodeIndex = int;
+//     using EdgeIndex = int;
+
+//     explicit SingleRowMaze(int length) :
+
+//     ENode getNode(NodeIndex node) const;
+//     void setNode(NodeIndex node, ENode val);
+
+//     void getOpenEdges(NodeIndex node, std::vector<EdgeIndex>& edges) const;
+//     void setEdge(NodeIndex node, EdgeIndex edge, EEdge val);
+
+//     NodeIndex getOpenNode() const;
+//     static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);
+//     static NodeIndex invalidNode();
+
+// private:
+//     std::vector<int> nodes_;
+//     std::vector<int> edges_;
+// };
+
+// // One step from start node leads to a visited node
+// TEST(GenWilsonTest, OneStepFromStart2) {
+
+//     CreateMazeWilson<OneStepMockMaze> maze_gen(0);
+//     EXPECT_EQ(maze_gen.createMaze(m), CreateMazeWilson<MockMaze>::ECreateResult::Ok);
+
+//     EXPECT_EQ();
+// }

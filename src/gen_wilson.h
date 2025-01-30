@@ -17,6 +17,7 @@ enum class EEdge
     Open,
     Visited,
     OnPath,
+    Invalid,
 };
 
 template< typename Maze >
