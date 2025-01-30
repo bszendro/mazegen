@@ -29,6 +29,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 set(TEST_SOURCES
+    tests/test_gen_wilson.cpp
     tests/test_hexmaze.cpp
     )
 
@@ -38,7 +39,7 @@ target_include_directories(test_mazegen PRIVATE ${PROJECT_SOURCE_DIR})
 target_link_libraries(test_mazegen
     PRIVATE
     GTest::GTest
-    GTest::Main
+    GTest::gmock_main
 )
 
 target_include_directories(test_mazegen PRIVATE ${PROJECT_SOURCE_DIR}/include)

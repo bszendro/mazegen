@@ -1,4 +1,5 @@
 #include "src/hexmaze.h"
+
 #include <gtest/gtest.h>
 
 // It is not possible to get across the border of the maze

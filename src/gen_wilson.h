@@ -23,9 +23,15 @@ template< typename Maze >
 class CreateMazeWilson
 {
 public:
+    enum class ECreateResult
+    {
+        Ok,
+        ErrNoFirstOpenNode,
+    };
+
     explicit CreateMazeWilson(int random_seed);
 
-    void createMaze(Maze& maze);
+    ECreateResult createMaze(Maze& maze);
 
 private:
     using NodeIndex = Maze::NodeIndex;
@@ -49,10 +55,12 @@ template< typename Maze >
 CreateMazeWilson<Maze>::CreateMazeWilson(int random_seed) : random_engine_(random_seed) {}
 
 template< typename Maze >
-void CreateMazeWilson<Maze>::createMaze(Maze& maze) {
+CreateMazeWilson<Maze>::ECreateResult CreateMazeWilson<Maze>::createMaze(Maze& maze) {
     // Add a random node to the graph
-    auto first_node = maze.getOpenNode();
-    assert(first_node != Maze::invalidNode());
+    const auto first_node = maze.getOpenNode();
+    if (first_node == Maze::invalidNode()) {
+        return ECreateResult::ErrNoFirstOpenNode;
+    }
     maze.setNode(first_node, ENode::Visited);
 
     for (;;) {
@@ -117,13 +125,14 @@ void CreateMazeWilson<Maze>::createMaze(Maze& maze) {
             prev_node = step.target_node;
         }
     }
+    return ECreateResult::Ok;
 }
 
 template< typename Maze >
 CreateMazeWilson<Maze>::PathItem CreateMazeWilson<Maze>::getRandomStep(const Maze& maze, NodeIndex node) {
     open_edges_.clear();
     maze.getOpenEdges(node, open_edges_);
-    assert(!open_edges_.empty());
+    assert(!open_edges_.empty()); // TODO: this should return an error instead of an assert
 
     std::uniform_int_distribution<int> dist(0, open_edges_.size() - 1);
     const auto edge = open_edges_[dist(random_engine_)];
