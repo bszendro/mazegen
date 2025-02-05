@@ -90,7 +90,7 @@ INSTANTIATE_TEST_SUITE_P(ValidCases, HexMazeNextNodeTest, ::testing::Values(
     NextNodeTestParam{{0, 0}, 4, {-1, 1}},
     NextNodeTestParam{{0, 0}, 5, {-1, 0}},
     NextNodeTestParam{{0, 0}, 6, {-1, -1}},
-
+    // Check both the next row and the next colum to see if i and j are mixed up somewhere
     NextNodeTestParam{{0, 1}, 1, {1, 0}},
     NextNodeTestParam{{0, 1}, 2, {1, 1}},
     NextNodeTestParam{{0, 1}, 3, {1, 2}},

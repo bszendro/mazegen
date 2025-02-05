@@ -29,7 +29,7 @@ public:
 
     SquareMaze(int rows, int cols);
 
-    void Draw(IPainter* painter, int block_width, int block_height, int margin_x, int margin_y) const;
+    void Draw(IPainter* painter, int block_width, int block_height, int padding_x, int padding_y) const;
 
     ENode getNode(NodeIndex node) const;
     void setNode(NodeIndex node, ENode val);
@@ -41,6 +41,17 @@ public:
     NodeIndex getOpenNode() const;
     static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);
     static NodeIndex invalidNode();
+
+    struct ComputedParams
+    {
+        // Number of rows that fit into the given area
+        int rows;
+        // Number of columns that fit into the given area
+        int cols;
+    };
+
+    static ComputedParams getParamsForSize(int area_width, int area_height,
+                                           int block_width, int block_height);
 
 private:
     static constexpr auto NODE_OPEN = static_cast<int>(ENode::Open);

@@ -27,15 +27,15 @@ bool SquareMaze::isEdgeVisible(int edge) {
     return edge == EDGE_OPEN || edge == EDGE_INVALID;
 }
 
-void SquareMaze::Draw(IPainter* painter, int block_width, int block_height, int margin_x, int margin_y) const {
-    const auto width = block_width*cols_ + 2*margin_x;
-    const auto height = block_height*rows_ + 2*margin_y;
+void SquareMaze::Draw(IPainter* painter, int block_width, int block_height, int padding_x, int padding_y) const {
+    const auto width = block_width*cols_ + 2*padding_x;
+    const auto height = block_height*rows_ + 2*padding_y;
     painter->BeginDraw(width, height);
 
     for (int i = 0; i < rows_; i++) {
         for (int j = 0; j < cols_; j++) {
-            const auto x_0 = block_width*j + margin_x;
-            const auto y_0 = block_height*i + margin_y;
+            const auto x_0 = block_width*j + padding_x;
+            const auto y_0 = block_height*i + padding_y;
 
             const Point2D p1{ x_0, y_0 + block_height };
             const Point2D p2{ x_0 + block_width, y_0 + block_height };
@@ -154,4 +154,13 @@ SquareMaze::NodeIndex SquareMaze::nextNode(NodeIndex node, EdgeIndex edge) {
 
 SquareMaze::NodeIndex SquareMaze::invalidNode() {
     return {-1, -1};
+}
+
+SquareMaze::ComputedParams SquareMaze::getParamsForSize(int area_width, int area_height,
+                                                        int block_width, int block_height) {
+    // area_width = block_width*cols
+    const auto cols = area_width/block_width;
+    // area_height = block_height*rows
+    const auto rows = area_height/block_height;
+    return {rows, cols};
 }

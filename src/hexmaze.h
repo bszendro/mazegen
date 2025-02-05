@@ -29,7 +29,7 @@ public:
 
     HexMaze(int rows, int cols);
 
-    void Draw(IPainter* painter, double rad, int margin_x, int margin_y) const;
+    void Draw(IPainter* painter, int rad, int padding_x, int padding_y) const;
 
     ENode getNode(NodeIndex node) const;
     void setNode(NodeIndex node, ENode val);
@@ -41,7 +41,18 @@ public:
     static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);
     static NodeIndex invalidNode();
 
-    void markRegion(NodeIndex top_left, NodeIndex bottom_right);
+    struct ComputedParams
+    {
+        // Number of rows that fit into the given area
+        int rows;
+        // Number of columns that fit into the given area
+        int cols;
+        // Radius to use for drawing
+        int rad;
+    };
+
+    static ComputedParams getParamsForSize(int area_width, int area_height, int cell_size);
+
     using OnChangeHook = std::function<void ()>;
     void setOnChangeHook(OnChangeHook&& on_change_hook);
 
@@ -50,9 +61,6 @@ private:
     int cols_;
     Matrix<char> nodes_;
     Matrix<char> edges_; // Each entry represents an edge in the dual graph (a wall in the maze)
-
-    NodeIndex marked_top_left_;
-    NodeIndex marked_bottom_right_;
 
     OnChangeHook on_change_hook_;
 };

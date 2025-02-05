@@ -19,10 +19,6 @@ struct IPainter
         OnPathCell,
         Wall,           // Wall between cells
         Edge,           // Line across cells to show the path
-
-        MarkedOpenCell,
-        MarkedVisitedCell,
-        MarkedOnPathCell,
     };
 
     virtual ~IPainter() {}

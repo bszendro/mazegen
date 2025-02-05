@@ -19,8 +19,6 @@ HexMaze::HexMaze(int rows, int cols)
     , cols_(cols)
     , nodes_(rows, cols)
     , edges_(rows+1, 3*(cols+2))
-    , marked_top_left_(invalidNode())
-    , marked_bottom_right_(invalidNode())
 {
     for (int j = 0; j < edges_.cols() - 2; j += 6) {
         edges_[0][j] = EDGE_INVALID;
@@ -46,58 +44,44 @@ static bool isEdgeVisible(char edge) {
     return edge == EDGE_OPEN || edge == EDGE_INVALID;
 }
 
-static Point2D nodeCenter(HexMaze::NodeIndex node, double rad, int margin_x, int margin_y) {
+static Point2D nodeCenter(HexMaze::NodeIndex node, int rad, int padding_x, int padding_y) {
     const auto i = node.i;
     const auto j = node.j;
-    const auto sqrt3 = sqrt(3.0);
-    const auto h = sqrt3*rad;
-    const auto x_0 = rad + 1.5*rad*j + margin_x;
+    const auto h = static_cast<int>(sqrt(3.0)*rad);
+    const auto x_0 = rad + rad*3/2*j + padding_x;
     const auto y_0 = (j % 2) == 0
-        ? 0.5*h + h*i + margin_y
-        : 1.0*h + h*i + margin_y;
-    return {static_cast<int>(x_0), static_cast<int>(y_0)};
+        ? h/2 + h*i + padding_y
+        : h + h*i + padding_y;
+    return {x_0, y_0};
 }
 
-void HexMaze::Draw(IPainter* painter, double rad, int margin_x, int margin_y) const {
-    const auto sqrt3 = sqrt(3.0);
-    const auto h = sqrt3*rad;
-
-    const auto width = static_cast<int>(0.5*rad + 1.5*rad*cols_ + 2*margin_x);
-    const auto height = static_cast<int>(0.5*h + h*rows_ + 2*margin_y);
+void HexMaze::Draw(IPainter* painter, int rad, int padding_x, int padding_y) const {
+    const auto h = static_cast<int>(sqrt(3.0)*rad);
+    const auto width = rad/2 + rad*3/2*cols_ + padding_x*2;
+    const auto height = h/2 + h*rows_ + padding_y*2;
     painter->BeginDraw(width, height);
 
     for (int i = 0; i < rows_; i++) {
         for (int j = 0; j < cols_; j++) {
-            const auto x_0 = rad + 1.5*rad*j + margin_x;
+            const auto x_0 = rad + rad*3/2*j + padding_x;
             const auto y_0 = (j % 2) == 0
-                ? 0.5*h + h*i + margin_y
-                : 1.0*h + h*i + margin_y;
+                ? h/2 + h*i + padding_y
+                : h + h*i + padding_y;
 
-            const Point2D p1{ static_cast<int>(x_0 - rad), static_cast<int>(y_0) };
-            const Point2D p2{ static_cast<int>(x_0 - 0.5*rad), static_cast<int>(y_0 + sqrt3/2.0*rad) };
-            const Point2D p3{ static_cast<int>(x_0 + 0.5*rad), static_cast<int>(y_0 + sqrt3/2.0*rad) };
-            const Point2D p4{ static_cast<int>(x_0 + rad), static_cast<int>(y_0) };
-            const Point2D p5{ static_cast<int>(x_0 + 0.5*rad), static_cast<int>(y_0 - sqrt3/2.0*rad) };
-            const Point2D p6{ static_cast<int>(x_0 - 0.5*rad), static_cast<int>(y_0 - sqrt3/2.0*rad) };
+            const Point2D p1{ x_0 - rad, y_0 };
+            const Point2D p2{ x_0 - rad/2, y_0 + h/2 };
+            const Point2D p3{ x_0 + rad/2, y_0 + h/2 };
+            const Point2D p4{ x_0 + rad, y_0 };
+            const Point2D p5{ x_0 + rad/2, y_0 - h/2 };
+            const Point2D p6{ x_0 - rad/2, y_0 - h/2 };
 
             EStyle style;
-            if (marked_top_left_.i <= i && i < marked_bottom_right_.i &&
-                    marked_top_left_.j <= j && j < marked_bottom_right_.j) {
-                switch (nodes_[i][j]) {
-                    case NODE_OPEN: style = EStyle::MarkedOpenCell; break;
-                    case NODE_VISITED: style = EStyle::MarkedVisitedCell; break;
-                    case NODE_ONPATH: style = EStyle::MarkedOnPathCell; break;
-                    default:
-                        assert(0);
-                }
-            } else {
-                switch (nodes_[i][j]) {
-                    case NODE_OPEN: style = EStyle::OpenCell; break;
-                    case NODE_VISITED: style = EStyle::VisitedCell; break;
-                    case NODE_ONPATH: style = EStyle::OnPathCell; break;
-                    default:
-                        assert(0);
-                }
+            switch (nodes_[i][j]) {
+                case NODE_OPEN: style = EStyle::OpenCell; break;
+                case NODE_VISITED: style = EStyle::VisitedCell; break;
+                case NODE_ONPATH: style = EStyle::OnPathCell; break;
+                default:
+                    assert(0);
             }
             painter->DrawPoly({p5, p4, p3, p2, p1, p6}, style);
 
@@ -112,7 +96,7 @@ void HexMaze::Draw(IPainter* painter, double rad, int margin_x, int margin_y) co
                 ? edges_[i][3*j + 2]
                 : edges_[i+1][3*j + 2];
 
-            const auto center = Point2D{ static_cast<int>(x_0), static_cast<int>(y_0) };
+            const auto center = Point2D{ x_0, y_0 };
             if (isEdgeVisible(e1)) {
                 painter->DrawLine(p1, p2, EStyle::Wall);
                 // const auto next = nodeCenter(nextNode({i, j}, 1), rad, margin);
@@ -144,12 +128,12 @@ void HexMaze::Draw(IPainter* painter, double rad, int margin_x, int margin_y) co
                 // painter->DrawLine(center, next, "stroke:#00ff00;stroke-width:2");
             }
 
-            if (e1 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 1), rad, margin_x, margin_y), EStyle::Edge);
-            if (e2 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 2), rad, margin_x, margin_y), EStyle::Edge);
-            if (e3 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 3), rad, margin_x, margin_y), EStyle::Edge);
-            if (e4 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 4), rad, margin_x, margin_y), EStyle::Edge);
-            if (e5 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 5), rad, margin_x, margin_y), EStyle::Edge);
-            if (e6 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 6), rad, margin_x, margin_y), EStyle::Edge);
+            if (e1 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 1), rad, padding_x, padding_y), EStyle::Edge);
+            if (e2 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 2), rad, padding_x, padding_y), EStyle::Edge);
+            if (e3 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 3), rad, padding_x, padding_y), EStyle::Edge);
+            if (e4 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 4), rad, padding_x, padding_y), EStyle::Edge);
+            if (e5 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 5), rad, padding_x, padding_y), EStyle::Edge);
+            if (e6 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 6), rad, padding_x, padding_y), EStyle::Edge);
         }
     }
 
@@ -296,9 +280,14 @@ HexMaze::NodeIndex HexMaze::invalidNode() {
     return {-1, -1};
 }
 
-void HexMaze::markRegion(NodeIndex top_left, NodeIndex bottom_right) {
-    marked_top_left_ = top_left;
-    marked_bottom_right_ = bottom_right;
+HexMaze::ComputedParams HexMaze::getParamsForSize(int area_width, int area_height, int cell_size) {
+    const auto rad = cell_size / 2;
+    // area_width = rad/2 + rad*3/2*cols
+    const auto cols = (area_width - rad/2) / (rad*3/2);
+    const auto h = static_cast<int>(sqrt(3.0)*rad);
+    // area_height = h/2 + h*rows
+    const auto rows = (area_height - h/2) / h;
+    return {rows, cols, rad};
 }
 
 void HexMaze::setOnChangeHook(OnChangeHook&& on_change_hook) {
