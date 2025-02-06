@@ -57,6 +57,8 @@ TEST(SquareMazeTest, GetSetNode) {
     EXPECT_EQ(m.getNode(node), ENode::Open);
 }
 
+//----------------------------------------------------------------------------------------------------
+
 using SetEdgeTestParam = SquareMaze::NodeIndex;
 
 class SquareMazeSetEdgeTest : public ::testing::TestWithParam<SetEdgeTestParam> {};
@@ -84,14 +86,52 @@ INSTANTIATE_TEST_SUITE_P(ValidCases, SquareMazeSetEdgeTest, ::testing::Values(
     SetEdgeTestParam{2, 1},
     SetEdgeTestParam{2, 2}));
 
-using NextNodeTestParam = std::tuple<SquareMaze::NodeIndex, SquareMaze::EdgeIndex, SquareMaze::NodeIndex>;
+//----------------------------------------------------------------------------------------------------
+
+struct ConnectionTestParam
+{
+    SquareMaze::NodeIndex node;
+    SquareMaze::EdgeIndex edge_out;
+    SquareMaze::EdgeIndex edge_in;
+};
+
+class SquareMazeConnectionTest : public ::testing::TestWithParam<ConnectionTestParam>
+{
+public:
+    SquareMazeConnectionTest() : m(2, 2) {}
+
+    SquareMaze m;
+};
+
+// Check that any edge matches its corresponding edge of the adjacent node
+TEST_P(SquareMazeConnectionTest, EdgesAreConnected) {
+    const auto& p = GetParam();
+    m.setEdge(p.node, p.edge_out, EEdge::Visited);
+    EXPECT_EQ(m.getEdge(SquareMaze::nextNode(p.node, p.edge_out), p.edge_in), EEdge::Visited);
+    m.setEdge(p.node, p.edge_out, EEdge::Open);
+}
+
+INSTANTIATE_TEST_SUITE_P(AllCases, SquareMazeConnectionTest, ::testing::Values(
+    ConnectionTestParam{{0, 0}, 1, 3},
+    ConnectionTestParam{{0, 0}, 2, 4},
+    ConnectionTestParam{{0, 0}, 3, 1},
+    ConnectionTestParam{{0, 0}, 4, 2}));
+
+//----------------------------------------------------------------------------------------------------
+
+struct NextNodeTestParam
+{
+    SquareMaze::NodeIndex node;
+    SquareMaze::EdgeIndex edge;
+    SquareMaze::NodeIndex result;
+};
 
 class SquareMazeNextNodeTest : public ::testing::TestWithParam<NextNodeTestParam> {};
 
 // nextNode returns the correct node index along the given edge
 TEST_P(SquareMazeNextNodeTest, ReturnsRightIndexes) {
     const auto& p = GetParam();
-    EXPECT_EQ(SquareMaze::nextNode(std::get<0>(p), std::get<1>(p)), std::get<2>(p));
+    EXPECT_EQ(SquareMaze::nextNode(p.node, p.edge), p.result);
 }
 
 INSTANTIATE_TEST_SUITE_P(ValidCases, SquareMazeNextNodeTest, ::testing::Values(
@@ -104,5 +144,6 @@ INSTANTIATE_TEST_SUITE_P(InvalidCases, SquareMazeNextNodeTest, ::testing::Values
     NextNodeTestParam{{0, 0}, 0, SquareMaze::invalidNode()},
     NextNodeTestParam{{0, 0}, 5, SquareMaze::invalidNode()}));
 
-// TODO: DrawTest
-// TODO: {0, 0} edge 1 is the same as {1, 0} edge 4...
+//----------------------------------------------------------------------------------------------------
+
+// TODO: Test drawing

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.30)
 
 project(mazegen)
 
@@ -6,21 +6,29 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_compile_options(-Wall -Wextra -pedantic -Werror)
 
+find_package(Boost 1.87.0 REQUIRED COMPONENTS program_options)
+
 set(SOURCES
+    src/brick_maze.cpp
     src/hexmaze.cpp
     src/square_maze.cpp
     src/svg_painter.cpp
     )
 
 set(HEADERS
+    src/brick_maze.h
     src/gen_wilson.h
     src/hexmaze.h
-    src/square_maze.h
     src/matrix.h
+    src/maze_grid.h
+    src/node_index_2d.h
+    src/painter.h
+    src/square_maze.h
     src/svg_painter.h
     )
 
 add_executable(mazegen src/main.cpp ${SOURCES} ${HEADERS})
+target_link_libraries(mazegen Boost::program_options)
 
 target_include_directories(mazegen PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
@@ -31,6 +39,7 @@ enable_testing()
 find_package(GTest REQUIRED)
 
 set(TEST_SOURCES
+    tests/test_brick_maze.cpp
     tests/test_gen_wilson.cpp
     tests/test_hexmaze.cpp
     tests/test_square_maze.cpp

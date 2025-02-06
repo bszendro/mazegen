@@ -1,5 +1,5 @@
 #include "hexmaze.h"
-#include "svg_painter.h"
+#include "painter.h"
 
 using namespace std;
 
@@ -8,11 +8,33 @@ using EStyle = IPainter::EStyle;
 static constexpr char NODE_OPEN = 0;
 static constexpr char NODE_VISITED = 1;
 static constexpr char NODE_ONPATH = 2;
+static constexpr char NODE_INVALID = 3;
 
 static constexpr char EDGE_OPEN = 0; // Edge that was not used during traversal (a wall that is still there)
-static constexpr char EDGE_INVALID = 'X'; // Edge that cannot be visited
 static constexpr char EDGE_VISITED = 1;
 static constexpr char EDGE_ONPATH = 2;
+static constexpr char EDGE_INVALID = 3; // Edge that cannot be visited
+
+#define E1(i, j)    (edges_[i+1][3*j + 3])                                      // direction SW
+#define E2(i, j)    (edges_[i+1][3*j + 4])                                      // direction S
+#define E3(i, j)    (edges_[i+1][3*j + 5])                                      // direction SE
+#define E4(i, j)    ((j % 2) == 0 ? edges_[i][3*j + 6] : edges_[i+1][3*j + 6])  // direction NE
+#define E5(i, j)    (edges_[i][3*j + 4])                                        // direction N
+#define E6(i, j)    ((j % 2) == 0 ? edges_[i][3*j + 2] : edges_[i+1][3*j + 2])  // direction NW
+
+struct PointParams
+{
+    const Point2D& center;
+    int rad;
+    int h;
+};
+
+inline static Point2D P1(const PointParams& p) { return { p.center.x - p.rad, p.center.y }; }
+inline static Point2D P2(const PointParams& p) { return { p.center.x - p.rad/2, p.center.y + p.h/2 }; }
+inline static Point2D P3(const PointParams& p) { return { p.center.x + p.rad/2, p.center.y + p.h/2 }; }
+inline static Point2D P4(const PointParams& p) { return { p.center.x + p.rad, p.center.y }; }
+inline static Point2D P5(const PointParams& p) { return { p.center.x + p.rad/2, p.center.y - p.h/2 }; }
+inline static Point2D P6(const PointParams& p) { return { p.center.x - p.rad/2, p.center.y - p.h/2 }; }
 
 HexMaze::HexMaze(int rows, int cols)
     : rows_(rows)
@@ -20,34 +42,36 @@ HexMaze::HexMaze(int rows, int cols)
     , nodes_(rows, cols)
     , edges_(rows+1, 3*(cols+2))
 {
-    for (int j = 0; j < edges_.cols() - 2; j += 6) {
-        edges_[0][j] = EDGE_INVALID;
-        edges_[0][j+1] = EDGE_INVALID;
-        edges_[0][j+2] = EDGE_INVALID;
-        edges_[rows_][j] = EDGE_INVALID;
-        edges_[rows_][j+1] = EDGE_INVALID;
-        edges_[rows_][j+2] = EDGE_INVALID;
-    }
-    for (int j = 4; j < edges_.cols(); j += 6) {
-        edges_[0][j] = EDGE_INVALID;
-        edges_[rows_][j] = EDGE_INVALID;
-    }
-    for (int i = 0; i < rows_ + 1; i++) {
-        edges_[i][2] = EDGE_INVALID;
-        edges_[i][3] = EDGE_INVALID;
-        edges_[i][3*(cols+2)-4] = EDGE_INVALID;
-        edges_[i][3*(cols+2)-3] = EDGE_INVALID;
-    }
+    invalidateRegionEdges({0, 0}, {rows-1, cols-1});
 }
 
-static bool isEdgeVisible(char edge) {
+inline static bool isEdgeVisible(char edge) {
     return edge == EDGE_OPEN || edge == EDGE_INVALID;
 }
 
-static Point2D nodeCenter(HexMaze::NodeIndex node, int rad, int padding_x, int padding_y) {
+inline static IPainter::EStyle edgeStyle(char edge) {
+    switch (edge) {
+        case EDGE_OPEN: return EStyle::Wall;
+        case EDGE_INVALID: return EStyle::WallBlocked;
+        default:
+            assert(0);
+    }
+}
+
+inline static IPainter::EStyle nodeStyle(char node) {
+    switch (node) {
+        case NODE_OPEN: return EStyle::OpenCell;
+        case NODE_VISITED: return EStyle::VisitedCell;
+        case NODE_ONPATH: return EStyle::OnPathCell;
+        case NODE_INVALID: return EStyle::OpenCell;
+        default:
+            assert(0);
+    }
+}
+
+inline static Point2D nodeCenter(HexMaze::NodeIndex node, int rad, int h, int padding_x, int padding_y) {
     const auto i = node.i;
     const auto j = node.j;
-    const auto h = static_cast<int>(sqrt(3.0)*rad);
     const auto x_0 = rad + rad*3/2*j + padding_x;
     const auto y_0 = (j % 2) == 0
         ? h/2 + h*i + padding_y
@@ -55,89 +79,167 @@ static Point2D nodeCenter(HexMaze::NodeIndex node, int rad, int padding_x, int p
     return {x_0, y_0};
 }
 
-void HexMaze::Draw(IPainter* painter, int rad, int padding_x, int padding_y) const {
+void HexMaze::Draw(IPainter& painter, const DrawParams& p) const {
+    const auto rad = p.cell_width / 2;
     const auto h = static_cast<int>(sqrt(3.0)*rad);
+    const auto padding_x = p.stroke_width / 2;
+    const auto padding_y = p.stroke_width / 2;
     const auto width = rad/2 + rad*3/2*cols_ + padding_x*2;
     const auto height = h/2 + h*rows_ + padding_y*2;
-    painter->BeginDraw(width, height);
+    painter.BeginDraw(width, height);
 
+    // Cells
     for (int i = 0; i < rows_; i++) {
         for (int j = 0; j < cols_; j++) {
-            const auto x_0 = rad + rad*3/2*j + padding_x;
-            const auto y_0 = (j % 2) == 0
-                ? h/2 + h*i + padding_y
-                : h + h*i + padding_y;
+            const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
+            const auto p = PointParams{c, rad, h};
+            const auto p1{P1(p)};
+            const auto p2{P2(p)};
+            const auto p3{P3(p)};
+            const auto p4{P4(p)};
+            const auto p5{P5(p)};
+            const auto p6{P6(p)};
 
-            const Point2D p1{ x_0 - rad, y_0 };
-            const Point2D p2{ x_0 - rad/2, y_0 + h/2 };
-            const Point2D p3{ x_0 + rad/2, y_0 + h/2 };
-            const Point2D p4{ x_0 + rad, y_0 };
-            const Point2D p5{ x_0 + rad/2, y_0 - h/2 };
-            const Point2D p6{ x_0 - rad/2, y_0 - h/2 };
-
-            EStyle style;
-            switch (nodes_[i][j]) {
-                case NODE_OPEN: style = EStyle::OpenCell; break;
-                case NODE_VISITED: style = EStyle::VisitedCell; break;
-                case NODE_ONPATH: style = EStyle::OnPathCell; break;
-                default:
-                    assert(0);
-            }
-            painter->DrawPoly({p5, p4, p3, p2, p1, p6}, style);
-
-            const char e1 = edges_[i+1][3*j + 3];
-            const char e2 = edges_[i+1][3*j + 4];
-            const char e3 = edges_[i+1][3*j + 5];
-            const char e4 = (j % 2) == 0
-                ? edges_[i][3*j + 6]
-                : edges_[i+1][3*j + 6];
-            const char e5 = edges_[i][3*j + 4];
-            const char e6 = (j % 2) == 0
-                ? edges_[i][3*j + 2]
-                : edges_[i+1][3*j + 2];
-
-            const auto center = Point2D{ x_0, y_0 };
-            if (isEdgeVisible(e1)) {
-                painter->DrawLine(p1, p2, EStyle::Wall);
-                // const auto next = nodeCenter(nextNode({i, j}, 1), rad, margin);
-                // painter->DrawLine(center, next, "stroke:#ff0000;stroke-width:2");
-            }
-            if (isEdgeVisible(e2)) {
-                painter->DrawLine(p2, p3, EStyle::Wall);
-                // const auto next = nodeCenter(nextNode({i, j}, 2), rad, margin);
-                // painter->DrawLine(center, next, "stroke:#df0000;stroke-width:2");
-            }
-            if (isEdgeVisible(e3)) {
-                painter->DrawLine(p3, p4, EStyle::Wall);
-                // const auto next = nodeCenter(nextNode({i, j}, 3), rad, margin);
-                // painter->DrawLine(center, next, "stroke:#bf0000;stroke-width:2");
-            }
-            if (isEdgeVisible(e4)) {
-                painter->DrawLine(p4, p5, EStyle::Wall);
-                // const auto next = nodeCenter(nextNode({i, j}, 4), rad, margin);
-                // painter->DrawLine(center, next, "stroke:#9f0000;stroke-width:2");
-            }
-            if (isEdgeVisible(e5)) {
-                painter->DrawLine(p5, p6, EStyle::Wall);
-                // const auto next = nodeCenter(nextNode({i, j}, 5), rad, margin);
-                // painter->DrawLine(center, next, "stroke:#7f0000;stroke-width:2");
-            }
-            if (isEdgeVisible(e6)) {
-                painter->DrawLine(p6, p1, EStyle::Wall);
-                // const auto next = nodeCenter(nextNode({i, j}, 6), rad, margin);
-                // painter->DrawLine(center, next, "stroke:#00ff00;stroke-width:2");
-            }
-
-            if (e1 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 1), rad, padding_x, padding_y), EStyle::Edge);
-            if (e2 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 2), rad, padding_x, padding_y), EStyle::Edge);
-            if (e3 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 3), rad, padding_x, padding_y), EStyle::Edge);
-            if (e4 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 4), rad, padding_x, padding_y), EStyle::Edge);
-            if (e5 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 5), rad, padding_x, padding_y), EStyle::Edge);
-            if (e6 == EDGE_ONPATH) painter->DrawLine(center, nodeCenter(nextNode({i, j}, 6), rad, padding_x, padding_y), EStyle::Edge);
+            painter.DrawPoly({p5, p4, p3, p2, p1, p6}, nodeStyle(nodes_[i][j]));
         }
     }
 
-    painter->EndDraw();
+    // Left side walls (skip top row)
+    for (int i = 1; i < rows_; i++) {
+        const auto j = 0;
+        const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
+        const auto p = PointParams{c, rad, h};
+        const auto p1{P1(p)};
+        const auto p6{P6(p)};
+
+        const char e6 = E6(i, j);
+        if (isEdgeVisible(e6)) {
+            painter.DrawLine(p6, p1, edgeStyle(e6));
+        }
+    }
+
+    // Right side walls (skip top row)
+    for (int i = 1; i < rows_; i++) {
+        const auto j = cols_ - 1;
+        const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
+        const auto p = PointParams{c, rad, h};
+        const auto p4{P4(p)};
+        const auto p5{P5(p)};
+
+        const char e4 = E4(i, j);
+        if (isEdgeVisible(e4)) {
+            painter.DrawLine(p4, p5, edgeStyle(e4));
+        }
+    }
+
+    // Top side walls (even columns)
+    for (int j = 0; j < cols_; j+=2) {
+        const auto i = 0;
+        const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
+        const auto p = PointParams{c, rad, h};
+        const auto p1{P1(p)};
+        const auto p4{P4(p)};
+        const auto p5{P5(p)};
+        const auto p6{P6(p)};
+
+        const char e4 = E4(i, j);
+        const char e5 = E5(i, j);
+        const char e6 = E6(i, j);
+        if (isEdgeVisible(e4)) {
+            painter.DrawLine(p4, p5, edgeStyle(e4));
+        }
+        if (isEdgeVisible(e5)) {
+            painter.DrawLine(p5, p6, edgeStyle(e5));
+        }
+        if (isEdgeVisible(e6)) {
+            painter.DrawLine(p6, p1, edgeStyle(e6));
+        }
+    }
+
+    // Top side walls (odd columns)
+    for (int j = 1; j < cols_; j+=2) {
+        const auto i = 0;
+        const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
+        const auto p = PointParams{c, rad, h};
+        const auto p5{P5(p)};
+        const auto p6{P6(p)};
+
+        const char e5 = E5(i, j);
+        if (isEdgeVisible(e5)) {
+            painter.DrawLine(p5, p6, edgeStyle(e5));
+        }
+    }
+
+    // Other walls for valid nodes
+    for (int i = 0; i < rows_; i++) {
+        for (int j = 0; j < cols_; j++) {
+            if (nodes_[i][j] == NODE_INVALID) {
+                continue;
+            }
+
+            const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
+            const auto p = PointParams{c, rad, h};
+            const auto p1{P1(p)};
+            const auto p2{P2(p)};
+            const auto p3{P3(p)};
+            const auto p4{P4(p)};
+
+            const char e1 = E1(i, j);
+            const char e2 = E2(i, j);
+            const char e3 = E3(i, j);
+            if (isEdgeVisible(e1)) {
+                painter.DrawLine(p1, p2, edgeStyle(e1));
+            }
+            if (isEdgeVisible(e2)) {
+                painter.DrawLine(p2, p3, edgeStyle(e2));
+            }
+            if (isEdgeVisible(e3)) {
+                painter.DrawLine(p3, p4, edgeStyle(e3));
+            }
+        }
+    }
+
+    // Other walls for invalid nodes
+    for (int i = 0; i < rows_; i++) {
+        for (int j = 0; j < cols_; j++) {
+            if (nodes_[i][j] != NODE_INVALID) {
+                continue;
+            }
+
+            // Check if there is a valid neighbour
+            auto next = nextNode({i, j}, 1);
+            const auto b1 = !nodeExists(next) || nodes_[next.i][next.j] != NODE_INVALID;
+            next = nextNode({i, j}, 2);
+            const auto b2 = !nodeExists(next) || nodes_[next.i][next.j] != NODE_INVALID;
+            next = nextNode({i, j}, 3);
+            const auto b3 = !nodeExists(next) || nodes_[next.i][next.j] != NODE_INVALID;
+            if (!b1 && !b2 && !b3) {
+                continue;
+            }
+
+            const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
+            const auto p = PointParams{c, rad, h};
+            const auto p1{P1(p)};
+            const auto p2{P2(p)};
+            const auto p3{P3(p)};
+            const auto p4{P4(p)};
+
+            const char e1 = E1(i, j);
+            const char e2 = E2(i, j);
+            const char e3 = E3(i, j);
+            if (b1 && isEdgeVisible(e1)) {
+                painter.DrawLine(p1, p2, edgeStyle(e1));
+            }
+            if (b2 && isEdgeVisible(e2)) {
+                painter.DrawLine(p2, p3, edgeStyle(e2));
+            }
+            if (b3 && isEdgeVisible(e3)) {
+                painter.DrawLine(p3, p4, edgeStyle(e3));
+            }
+        }
+    }
+
+    painter.EndDraw();
 }
 
 static ENode toNode(char c) {
@@ -175,16 +277,12 @@ void HexMaze::setNode(NodeIndex node, ENode val) {
 void HexMaze::getOpenEdges(NodeIndex node, vector<EdgeIndex>& edges) const {
     const auto i = node.i;
     const auto j = node.j;
-    const char e1 = edges_[i+1][3*j + 3];
-    const char e2 = edges_[i+1][3*j + 4];
-    const char e3 = edges_[i+1][3*j + 5];
-    const char e4 = (j % 2) == 0
-        ? edges_[i][3*j + 6]
-        : edges_[i+1][3*j + 6];
-    const char e5 = edges_[i][3*j + 4];
-    const char e6 = (j % 2) == 0
-        ? edges_[i][3*j + 2]
-        : edges_[i+1][3*j + 2];
+    const char e1 = E1(i, j);
+    const char e2 = E2(i, j);
+    const char e3 = E3(i, j);
+    const char e4 = E4(i, j);
+    const char e5 = E5(i, j);
+    const char e6 = E6(i, j);
 
     edges.clear();
     if (e1 == EDGE_OPEN || e1 == EDGE_ONPATH) edges.push_back(1);
@@ -210,22 +308,12 @@ void HexMaze::setEdge(NodeIndex node, EdgeIndex edge, EEdge val) {
     const auto j = node.j;
     const auto c = fromEdge(val);
     switch (edge) {
-        case 1: edges_[i+1][3*j + 3] = c; break;
-        case 2: edges_[i+1][3*j + 4] = c; break;
-        case 3: edges_[i+1][3*j + 5] = c; break;
-        case 4:
-            if ((j % 2) == 0)
-                edges_[i][3*j + 6] = c;
-            else
-                edges_[i+1][3*j + 6] = c;
-            break;
-        case 5: edges_[i][3*j + 4] = c; break;
-        case 6:
-            if ((j % 2) == 0)
-                edges_[i][3*j + 2] = c;
-            else
-                edges_[i+1][3*j + 2] = c;
-            break;
+        case 1: E1(i, j) = c; break;
+        case 2: E2(i, j) = c; break;
+        case 3: E3(i, j) = c; break;
+        case 4: E4(i, j) = c; break;
+        case 5: E5(i, j) = c; break;
+        case 6: E6(i, j) = c; break;
         default:
             assert(0);
     }
@@ -233,6 +321,23 @@ void HexMaze::setEdge(NodeIndex node, EdgeIndex edge, EEdge val) {
     if (on_change_hook_) {
         on_change_hook_();
     }
+}
+
+EEdge HexMaze::getEdge(NodeIndex node, EdgeIndex edge) const {
+    const auto i = node.i;
+    const auto j = node.j;
+    int intval = 0;
+    switch (edge) {
+        case 1: intval = E1(i, j); break;
+        case 2: intval = E2(i, j); break;
+        case 3: intval = E3(i, j); break;
+        case 4: intval = E4(i, j); break;
+        case 5: intval = E5(i, j); break;
+        case 6: intval = E6(i, j); break;
+        default:
+            assert(0);
+    }
+    return static_cast<EEdge>(intval);
 }
 
 HexMaze::NodeIndex HexMaze::getOpenNode() const {
@@ -244,6 +349,11 @@ HexMaze::NodeIndex HexMaze::getOpenNode() const {
         }
     }
     return invalidNode();
+}
+
+bool HexMaze::nodeExists(NodeIndex node) const {
+    return 0 <= node.i && node.i < rows_ &&
+           0 <= node.j && node.j < cols_;
 }
 
 HexMaze::NodeIndex HexMaze::nextNode(NodeIndex node, EdgeIndex edge) {
@@ -280,16 +390,82 @@ HexMaze::NodeIndex HexMaze::invalidNode() {
     return {-1, -1};
 }
 
-HexMaze::ComputedParams HexMaze::getParamsForSize(int area_width, int area_height, int cell_size) {
-    const auto rad = cell_size / 2;
-    // area_width = rad/2 + rad*3/2*cols
-    const auto cols = (area_width - rad/2) / (rad*3/2);
-    const auto h = static_cast<int>(sqrt(3.0)*rad);
-    // area_height = h/2 + h*rows
-    const auto rows = (area_height - h/2) / h;
-    return {rows, cols, rad};
+void HexMaze::invalidateRegionEdges(NodeIndex topLeft, NodeIndex bottomRight) {
+    assert(topLeft.i <= bottomRight.i);
+    assert(topLeft.j <= bottomRight.j);
+
+    for (int i = topLeft.i; i <= bottomRight.i; i++) {
+        {
+            // Left vertical line
+            const auto j = topLeft.j;
+            E1(i, j) = EDGE_INVALID;
+            E6(i, j) = EDGE_INVALID;
+        }
+        {
+            // Right vertical line
+            const auto j = bottomRight.j;
+            E3(i, j) = EDGE_INVALID;
+            E4(i, j) = EDGE_INVALID;
+        }
+    }
+
+    for (int j = topLeft.j; j <= bottomRight.j; j++) {
+        {
+            // Top horizontal line
+            const auto i = topLeft.i;
+            if ((j % 2) == 0) {
+                E4(i, j) = EDGE_INVALID;
+                E5(i, j) = EDGE_INVALID;
+                E6(i, j) = EDGE_INVALID;
+            } else {
+                E5(i, j) = EDGE_INVALID;
+            }
+        }
+        {
+            // Bottom horizontal line
+            const auto i = bottomRight.i;
+            if ((j % 2) == 0) {
+                E2(i, j) = EDGE_INVALID;
+            } else {
+                E1(i, j) = EDGE_INVALID;
+                E2(i, j) = EDGE_INVALID;
+                E3(i, j) = EDGE_INVALID;
+            }
+        }
+    }
+}
+
+void HexMaze::invalidateRegion(NodeIndex topLeft, NodeIndex bottomRight) {
+    invalidateRegionEdges(topLeft, bottomRight);
+
+    for (int i = topLeft.i; i <= bottomRight.i; i++) {
+        for (int j = topLeft.j; j <= bottomRight.j; j++) {
+            nodes_[i][j] = NODE_INVALID;
+        }
+    }
 }
 
 void HexMaze::setOnChangeHook(OnChangeHook&& on_change_hook) {
     on_change_hook_ = std::move(on_change_hook);
+}
+
+std::tuple<int, int> HexMaze::ComputeGridSize(int area_width, int area_height,
+                                              int cell_width, int stroke_width) {
+    const auto rad = cell_width / 2;
+    // area_width = rad/2 + rad*3/2*cols + stroke_width
+    const auto cols = (area_width - rad/2 - stroke_width) / (rad*3/2);
+    const auto h = static_cast<int>(sqrt(3.0)*rad);
+    // area_height = h/2 + h*rows + stroke_width
+    const auto rows = (area_height - h/2 - stroke_width) / h;
+    return {rows, cols};
+}
+
+void HexMaze::AddExits() {
+    setEdge({0, 0}, 6, EEdge::Visited);
+    setEdge({rows_ - 1, cols_ - 1}, 3, EEdge::Visited);
+}
+
+ECreateMazeResult HexMaze::CreateMaze(unsigned random_seed) {
+    CreateMazeWilson<HexMaze> maze_gen(random_seed);
+    return maze_gen.createMaze(*this);
 }

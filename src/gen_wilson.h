@@ -17,7 +17,6 @@ enum class EEdge
     Open,
     Visited,
     OnPath,
-    Invalid,
 };
 
 enum class ECreateMazeResult
@@ -27,7 +26,35 @@ enum class ECreateMazeResult
     ErrNoOpenEdges, // We reached a node which doesn't have any open edges
 };
 
-// TODO: what is this? document
+// Wilson's algorithm
+// https://en.wikipedia.org/wiki/Maze_generation_algorithm#Wilson%27s_algorithm
+//
+// Type parameter `Maze` is expected to implement:
+//  // Type to refer to nodes
+//  using NodeIndex = ...;
+//  // Type to refer to edges
+//  using EdgeIndex = ...;
+//
+//  // Get/set node status
+//  ENode getNode(NodeIndex node) const;
+//  void setNode(NodeIndex node, ENode val);
+//
+//  // Return the list of open edges
+//  void getOpenEdges(NodeIndex node, std::vector<EdgeIndex>& edges) const;
+//
+//  // Set edge status
+//  void setEdge(NodeIndex node, EdgeIndex edge, EEdge val);
+//
+//  // Get an open node (any)
+//  NodeIndex getOpenNode() const;
+//
+//  // Return the adjacent node of `node` along `edge`. The algorithm will call this function
+//  // only with valid nodes and edges returned by getOpenEdges()
+//  static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);
+//
+//  // The invalid value for NodeIndex to indicate errors
+//  static NodeIndex invalidNode();
+//
 template< typename Maze >
 class CreateMazeWilson
 {

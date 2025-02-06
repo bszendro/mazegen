@@ -1,36 +1,24 @@
 #pragma once
 
-#include <vector>
-
 #include "matrix.h"
-#include "gen_wilson.h"
+#include "node_index_2d.h"
+#include "maze_grid.h"
 
 struct IPainter;
+struct DrawParams;
 
-class SquareMaze
+// Rectangular grid for maze generation
+class SquareMaze : public IMazeGrid
 {
 public:
-    struct NodeIndex
-    {
-        int i;
-        int j;
-
-        bool operator==(const NodeIndex& rhs) const {
-            return i == rhs.i && j == rhs.j;
-        }
-
-        bool operator!=(const NodeIndex& rhs) {
-            return i != rhs.i || j != rhs.j;
-        }
-    };
-
+    using NodeIndex = NodeIndex2D;
     using EdgeIndex = int;
     using EdgeList = std::vector<EdgeIndex>;
 
     SquareMaze(int rows, int cols);
 
-    void Draw(IPainter* painter, int block_width, int block_height, int padding_x, int padding_y) const;
-
+    //--------------------------------------------------
+    // Interface for CreateMazeWilson
     ENode getNode(NodeIndex node) const;
     void setNode(NodeIndex node, ENode val);
 
@@ -41,27 +29,31 @@ public:
     NodeIndex getOpenNode() const;
     static NodeIndex nextNode(NodeIndex node, EdgeIndex edge);
     static NodeIndex invalidNode();
+    //--------------------------------------------------
 
-    struct ComputedParams
-    {
-        // Number of rows that fit into the given area
-        int rows;
-        // Number of columns that fit into the given area
-        int cols;
-    };
+    // Computes the grid size (rows, cols) for the given parameters:
+    // area_width, area_height: Size (in pixels) of the available space to draw the grid
+    // cell_width, cell_height: Size (in pixels) of a single cell
+    // stroke_width: Thickness of a wall (in pixels)
+    static std::tuple<int, int> ComputeGridSize(int area_width, int area_height,
+                                                int cell_width, int cell_height,
+                                                int stroke_width);
 
-    static ComputedParams getParamsForSize(int area_width, int area_height,
-                                           int block_width, int block_height);
+    //--------------------------------------------------
+    // IMazeGrid
+    void AddExits() override;
+    ECreateMazeResult CreateMaze(unsigned random_seed) override;
+    void Draw(IPainter& painter, const DrawParams& p) const override;
+    //--------------------------------------------------
+
+    void invalidateRegion(NodeIndex topLeft, NodeIndex bottomRight);
+
+    int rows() const { return rows_; }
+    int cols() const { return cols_; }
 
 private:
-    static constexpr auto NODE_OPEN = static_cast<int>(ENode::Open);
-    static constexpr auto NODE_VISITED = static_cast<int>(ENode::Visited);
-
-    static constexpr auto EDGE_OPEN = static_cast<int>(EEdge::Open);
-    static constexpr auto EDGE_ONPATH = static_cast<int>(EEdge::OnPath);
-    static constexpr auto EDGE_INVALID = static_cast<int>(EEdge::Invalid);
-
-    static bool isEdgeVisible(int edge);
+    void invalidateRegionEdges(NodeIndex topLeft, NodeIndex bottomRight);
+    bool nodeExists(NodeIndex node) const;
 
     int rows_;
     int cols_;

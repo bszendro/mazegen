@@ -348,6 +348,8 @@ TEST(GenWilsonTest, SelfLoopOnOtherNode) {
     EXPECT_EQ(maze_gen.createMaze(m), ECreateMazeResult::Ok);
 }
 
+//----------------------------------------------------------------------------------------------------
+
 using GenWilsonRandomTestParam = std::tuple<int, int>;
 
 class GenWilsonRandomTest : public ::testing::TestWithParam<GenWilsonRandomTestParam> {};

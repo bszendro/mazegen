@@ -4,7 +4,13 @@
 
 using namespace std;
 
-SvgPainter::SvgPainter(ostream& os): os_(os) {}
+SvgPainter::SvgPainter(ostream& os, const PainterParams& params): os_(os) {
+    char buf[128];
+    snprintf(buf, sizeof(buf), "stroke:black;stroke-width:%d;stroke-linecap:round", params.stroke_width);
+    wallStyle_ = buf;
+    snprintf(buf, sizeof(buf), "stroke:red;stroke-width:%d;stroke-linecap:round", params.stroke_width);
+    wallBlockedStyle_ = buf;
+}
 
 void SvgPainter::BeginDraw(int width, int height) {
     os_ << "<!DOCTYPE svg>\n";
@@ -15,13 +21,13 @@ void SvgPainter::EndDraw() {
     os_ << "</svg>\n";
 }
 
-static string toSvgStyle(IPainter::EStyle style) {
+string SvgPainter::toSvgStyle(IPainter::EStyle style) const {
     switch (style) {
         case IPainter::EStyle::OpenCell: return "fill:darkgray";
         case IPainter::EStyle::VisitedCell: return "fill:white";
         case IPainter::EStyle::OnPathCell: return "fill:lightgray";
-        case IPainter::EStyle::Wall: return "stroke:black;stroke-width:4;stroke-linecap:round";
-        case IPainter::EStyle::Edge: return "stroke:#ff0000;stroke-width:2";
+        case IPainter::EStyle::Wall: return wallStyle_;
+        case IPainter::EStyle::WallBlocked: return wallBlockedStyle_;
         default:
             assert(0);
     }

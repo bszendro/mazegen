@@ -2,6 +2,17 @@
 
 #include <gtest/gtest.h>
 
+// All nodes are open initially
+TEST(HexMazeTest, AllNodesOpen) {
+    HexMaze m(3, 3);
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            EXPECT_EQ(m.getNode({i, j}), ENode::Open);
+        }
+    }
+}
+
 // It is not possible to get across the border of the maze
 TEST(HexMazeTest, BorderEdgesTest) {
     HexMaze m(3, 3);
@@ -46,6 +57,8 @@ TEST(HexMazeTest, GetSetNodeTest) {
     EXPECT_EQ(m.getNode(node), ENode::Open);
 }
 
+//----------------------------------------------------------------------------------------------------
+
 using SetEdgeTestParam = HexMaze::NodeIndex;
 
 class HexMazeSetEdgeTest : public ::testing::TestWithParam<SetEdgeTestParam> {};
@@ -73,14 +86,76 @@ INSTANTIATE_TEST_SUITE_P(ValidCases, HexMazeSetEdgeTest, ::testing::Values(
     SetEdgeTestParam{2, 1},
     SetEdgeTestParam{2, 2}));
 
-using NextNodeTestParam = std::tuple<HexMaze::NodeIndex, HexMaze::EdgeIndex, HexMaze::NodeIndex>;
+//----------------------------------------------------------------------------------------------------
+
+struct ConnectionTestParam
+{
+    HexMaze::NodeIndex node;
+    HexMaze::EdgeIndex edge_out;
+    HexMaze::EdgeIndex edge_in;
+};
+
+class HexMazeConnectionTest : public ::testing::TestWithParam<ConnectionTestParam>
+{
+public:
+    HexMazeConnectionTest() : m(2, 2) {}
+
+    HexMaze m;
+};
+
+// Check that any edge matches its corresponding edge of the adjacent node
+TEST_P(HexMazeConnectionTest, EdgesAreConnected) {
+    const auto& p = GetParam();
+    m.setEdge(p.node, p.edge_out, EEdge::Visited);
+    EXPECT_EQ(m.getEdge(HexMaze::nextNode(p.node, p.edge_out), p.edge_in), EEdge::Visited);
+    m.setEdge(p.node, p.edge_out, EEdge::Open);
+}
+
+INSTANTIATE_TEST_SUITE_P(AllCases, HexMazeConnectionTest, ::testing::Values(
+    ConnectionTestParam{{0, 0}, 1, 4},
+    ConnectionTestParam{{0, 0}, 2, 5},
+    ConnectionTestParam{{0, 0}, 3, 6},
+    ConnectionTestParam{{0, 0}, 4, 1},
+    ConnectionTestParam{{0, 0}, 5, 2},
+    ConnectionTestParam{{0, 0}, 6, 3},
+    // Check both the next row and the next column to see if i and j are
+    // mixed up in the edge index functions
+    ConnectionTestParam{{0, 1}, 1, 4},
+    ConnectionTestParam{{0, 1}, 2, 5},
+    ConnectionTestParam{{0, 1}, 3, 6},
+    ConnectionTestParam{{0, 1}, 4, 1},
+    ConnectionTestParam{{0, 1}, 5, 2},
+    ConnectionTestParam{{0, 1}, 6, 3},
+
+    ConnectionTestParam{{1, 0}, 1, 4},
+    ConnectionTestParam{{1, 0}, 2, 5},
+    ConnectionTestParam{{1, 0}, 3, 6},
+    ConnectionTestParam{{1, 0}, 4, 1},
+    ConnectionTestParam{{1, 0}, 5, 2},
+    ConnectionTestParam{{1, 0}, 6, 3},
+
+    ConnectionTestParam{{1, 1}, 1, 4},
+    ConnectionTestParam{{1, 1}, 2, 5},
+    ConnectionTestParam{{1, 1}, 3, 6},
+    ConnectionTestParam{{1, 1}, 4, 1},
+    ConnectionTestParam{{1, 1}, 5, 2},
+    ConnectionTestParam{{1, 1}, 6, 3}));
+
+//----------------------------------------------------------------------------------------------------
+
+struct NextNodeTestParam
+{
+    HexMaze::NodeIndex node;
+    HexMaze::EdgeIndex edge;
+    HexMaze::NodeIndex result;
+};
 
 class HexMazeNextNodeTest : public ::testing::TestWithParam<NextNodeTestParam> {};
 
 // nextNode returns the correct node index along the given edge
 TEST_P(HexMazeNextNodeTest, ReturnsRightIndexes) {
     const auto& p = GetParam();
-    EXPECT_EQ(HexMaze::nextNode(std::get<0>(p), std::get<1>(p)), std::get<2>(p));
+    EXPECT_EQ(HexMaze::nextNode(p.node, p.edge), p.result);
 }
 
 INSTANTIATE_TEST_SUITE_P(ValidCases, HexMazeNextNodeTest, ::testing::Values(
@@ -90,7 +165,8 @@ INSTANTIATE_TEST_SUITE_P(ValidCases, HexMazeNextNodeTest, ::testing::Values(
     NextNodeTestParam{{0, 0}, 4, {-1, 1}},
     NextNodeTestParam{{0, 0}, 5, {-1, 0}},
     NextNodeTestParam{{0, 0}, 6, {-1, -1}},
-    // Check both the next row and the next colum to see if i and j are mixed up somewhere
+    // Check both the next row and the next column to see if i and j are
+    // mixed up in nextNode
     NextNodeTestParam{{0, 1}, 1, {1, 0}},
     NextNodeTestParam{{0, 1}, 2, {1, 1}},
     NextNodeTestParam{{0, 1}, 3, {1, 2}},
@@ -114,12 +190,28 @@ INSTANTIATE_TEST_SUITE_P(ValidCases, HexMazeNextNodeTest, ::testing::Values(
 
 INSTANTIATE_TEST_SUITE_P(InvalidCases, HexMazeNextNodeTest, ::testing::Values(
     NextNodeTestParam{{0, 0}, 0, HexMaze::invalidNode()},
-    NextNodeTestParam{{0, 0}, 7, HexMaze::invalidNode()},
-    NextNodeTestParam{{0, 1}, 0, HexMaze::invalidNode()},
-    NextNodeTestParam{{0, 1}, 7, HexMaze::invalidNode()},
-    NextNodeTestParam{{1, 0}, 0, HexMaze::invalidNode()},
-    NextNodeTestParam{{1, 0}, 7, HexMaze::invalidNode()},
-    NextNodeTestParam{{1, 1}, 0, HexMaze::invalidNode()},
-    NextNodeTestParam{{1, 1}, 7, HexMaze::invalidNode()}));
+    NextNodeTestParam{{0, 0}, 7, HexMaze::invalidNode()}));
 
-// TODO: DrawTest
+//----------------------------------------------------------------------------------------------------
+
+// It is not possible to enter into invalid regions
+TEST(HexMazeTest, InvalidRegionTest) {
+    HexMaze m(3, 3);
+
+    HexMaze::EdgeList edges;
+    m.getOpenEdges({1, 1}, edges); EXPECT_EQ(edges, HexMaze::EdgeList({1, 2, 3, 4, 5, 6}));
+    m.invalidateRegion({2, 0}, {2, 0});
+    m.getOpenEdges({1, 1}, edges); EXPECT_EQ(edges, HexMaze::EdgeList({2, 3, 4, 5, 6}));
+    m.invalidateRegion({2, 1}, {2, 1});
+    m.getOpenEdges({1, 1}, edges); EXPECT_EQ(edges, HexMaze::EdgeList({3, 4, 5, 6}));
+    m.invalidateRegion({2, 2}, {2, 2});
+    m.getOpenEdges({1, 1}, edges); EXPECT_EQ(edges, HexMaze::EdgeList({4, 5, 6}));
+    m.invalidateRegion({1, 2}, {1, 2});
+    m.getOpenEdges({1, 1}, edges); EXPECT_EQ(edges, HexMaze::EdgeList({5, 6}));
+    m.invalidateRegion({0, 1}, {0, 1});
+    m.getOpenEdges({1, 1}, edges); EXPECT_EQ(edges, HexMaze::EdgeList({6}));
+    m.invalidateRegion({1, 0}, {1, 0});
+    m.getOpenEdges({1, 1}, edges); EXPECT_EQ(edges, HexMaze::EdgeList({}));
+}
+
+// TODO: Test drawing

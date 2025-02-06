@@ -7,22 +7,22 @@
 struct IPainter;
 struct DrawParams;
 
-// Hexagonal grid for maze generation
-class HexMaze : public IMazeGrid
+// Brick wall grid for maze generation
+class BrickMaze : public IMazeGrid
 {
 public:
     using NodeIndex = NodeIndex2D;
     using EdgeIndex = int;
-    using EdgeList = std::vector<HexMaze::EdgeIndex>;
+    using EdgeList = std::vector<EdgeIndex>;
 
-    HexMaze(int rows, int cols);
+    BrickMaze(int rows, int cols);
 
     //--------------------------------------------------
     // Interface for CreateMazeWilson
     ENode getNode(NodeIndex node) const;
     void setNode(NodeIndex node, ENode val);
 
-    void getOpenEdges(NodeIndex node, std::vector<EdgeIndex>& edges) const;
+    void getOpenEdges(NodeIndex node, EdgeList& edges) const;
     void setEdge(NodeIndex node, EdgeIndex edge, EEdge val);
     EEdge getEdge(NodeIndex node, EdgeIndex edge) const;
 
@@ -33,10 +33,11 @@ public:
 
     // Computes the grid size (rows, cols) for the given parameters:
     // area_width, area_height: Size (in pixels) of the available space to draw the grid
-    // cell_width: Diameter (in pixels) of a single cell
+    // cell_width, cell_height: Size (in pixels) of a single cell
     // stroke_width: Thickness of a wall (in pixels)
     static std::tuple<int, int> ComputeGridSize(int area_width, int area_height,
-                                                int cell_width, int stroke_width);
+                                                int cell_width, int cell_height,
+                                                int stroke_width);
 
     //--------------------------------------------------
     // IMazeGrid
@@ -47,9 +48,6 @@ public:
 
     void invalidateRegion(NodeIndex topLeft, NodeIndex bottomRight);
 
-    using OnChangeHook = std::function<void ()>;
-    void setOnChangeHook(OnChangeHook&& on_change_hook);
-
     int rows() const { return rows_; }
     int cols() const { return cols_; }
 
@@ -59,8 +57,6 @@ private:
 
     int rows_;
     int cols_;
-    Matrix<char> nodes_;
-    Matrix<char> edges_; // Each entry represents an edge in the dual graph (a wall in the maze)
-
-    OnChangeHook on_change_hook_;
+    Matrix<int> nodes_;
+    Matrix<int> edges_;
 };
