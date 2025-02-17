@@ -118,8 +118,9 @@ void HexMaze::Draw(IPainter& painter, const DrawParams& p) const {
         }
     }
 
-    // Right side walls (skip top row)
-    for (int i = 1; i < rows_; i++) {
+    // Right side walls (skip top row if the number of columns is odd)
+    const auto i_start = (cols_ % 2 == 0) ? 0 : 1;
+    for (int i = i_start; i < rows_; i++) {
         const auto j = cols_ - 1;
         const auto c = nodeCenter({i, j}, rad, h, padding_x, padding_y);
         const auto p = PointParams{c, rad, h};
