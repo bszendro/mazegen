@@ -170,10 +170,10 @@ export class SquareMaze {
                 const e1 = E1(this.edges, i, j);
                 const e2 = E2(this.edges, i, j);
                 if (b1 && SquareMaze.isEdgeVisible(e1)) {
-                    painter.DrawLine(p1, p2, SquareMaze.edgeStyle(e1));
+                  painter.DrawLine(p1, p2, SquareMaze.edgeStyle(e1));
                 }
                 if (b2 && SquareMaze.isEdgeVisible(e2)) {
-                    painter.DrawLine(p2, p3, SquareMaze.edgeStyle(e2));
+                  painter.DrawLine(p2, p3, SquareMaze.edgeStyle(e2));
                 }
             }
         }

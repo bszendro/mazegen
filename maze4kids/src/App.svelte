@@ -6,18 +6,21 @@
   import CoffeeIcon from './lib/CoffeeIcon.svelte';
   import { HexMaze } from './lib/maze/HexMaze';
   import { CreateMazeWilson } from './lib/maze/CreateMazeWilson';
-  import { SvgPainter } from './lib/maze/SvgPainter';
-  import { getAreaSize } from './lib/maze/PaperSize';
+  import { SVG_NAMESPACE, SvgPainter } from './lib/maze/SvgPainter';
+  import { getAreaSize, inchSizeToPixelSize, type PaperSize } from './lib/maze/PaperSize';
   import { SquareMaze } from './lib/maze/SquareMaze';
+  import { type GridSize } from './lib/maze/MazeGrid';
 
-  let selectedPaperSize = $state('a4');
+  let selectedPaperSize: PaperSize = $state('a4');
   const paperSizes = [
     { value: 'a3', name: 'A3' },
     { value: 'a4', name: 'A4' },
     { value: 'a5', name: 'A5' }
   ];
 
-  let selectedCellShape = $state('square');
+  type CellShape = 'square' | 'hexagonal';
+
+  let selectedCellShape: CellShape = $state('square');
   const cellShapes = [
     { value: 'square', name: 'Square' },
     { value: 'hexagonal', name: 'Hexagonal' },
@@ -28,26 +31,41 @@
   let openWindowError = $state(false);
 
   function buildMaze() {
+    const QR_CODE_SIZE = 0.984; // ~2.5 cm
+    const STROKE_WIDTH = 2;
+
     const areaSize = getAreaSize(selectedPaperSize);
-    const strokeWidth = 2;
+    const qrSize = inchSizeToPixelSize({width: QR_CODE_SIZE, height: QR_CODE_SIZE});
+
     let maze;
+    let gridSize: GridSize;
+    let qrGridSize: GridSize;
     switch (selectedCellShape) {
       case 'square': {
-        const gridSize = SquareMaze.ComputeGridSize(areaSize.width, areaSize.height, cellSize, cellSize, strokeWidth);
+        gridSize = SquareMaze.ComputeGridSize(areaSize.width, areaSize.height, cellSize, cellSize, STROKE_WIDTH);
         maze = new SquareMaze(gridSize.rows, gridSize.cols);
+        qrGridSize = SquareMaze.ComputeGridSize(qrSize.width, qrSize.height, cellSize, cellSize, STROKE_WIDTH);
         break;
       }
       case 'hexagonal': {
-        const gridSize = HexMaze.ComputeGridSize(areaSize.width, areaSize.height, cellSize, strokeWidth);
+        gridSize = HexMaze.ComputeGridSize(areaSize.width, areaSize.height, cellSize, STROKE_WIDTH);
         maze = new HexMaze(gridSize.rows, gridSize.cols);
+        qrGridSize = HexMaze.ComputeGridSize(qrSize.width, qrSize.height, cellSize, STROKE_WIDTH);
         break;
       }
     }
 
+    // Block out the bottom left corner for the QR code
+    maze.invalidateRegion(
+      {i: gridSize.rows - qrGridSize.rows - 1, j: 0},
+      {i: gridSize.rows - 1, j: qrGridSize.cols + 1},
+    );
+
+    // Apply Wilson's algorithm
     const m = new MersenneTwister();
     const generator = new CreateMazeWilson(() => m.random());
-    generator.createMaze(maze!);
-    maze!.AddExits();
+    generator.createMaze(maze);
+    maze.AddExits();
 
     const printWindow = window.open('', '', `width=${areaSize.width},height=${areaSize.height}`);
     if (printWindow === null) {
@@ -56,8 +74,21 @@
     }
 
     const parentNode = printWindow.document.createElement('div');
-    const painter = new SvgPainter(parentNode, { strokeWidth });
-    maze!.Draw(painter, {cellWidth: cellSize, cellHeight: cellSize, strokeWidth});
+    const painter = new SvgPainter(parentNode, { strokeWidth: STROKE_WIDTH });
+    maze.Draw(painter, {cellWidth: cellSize, cellHeight: cellSize, strokeWidth: STROKE_WIDTH});
+
+    const svgNode = parentNode.children.item(0)!;
+    const imgNode = document.createElementNS(SVG_NAMESPACE, 'image');
+    imgNode.setAttribute('x', '100');
+    imgNode.setAttribute('y', '100');
+    const size = inchSizeToPixelSize({width: 0.787, height: 0.787});
+    imgNode.setAttribute('width', size.width.toString());
+    imgNode.setAttribute('height', size.height.toString());
+    imgNode.setAttribute('src', '/src/assets/qr-maze4kids-netli.svg');
+    // imgNode.setAttribute('style', 'position:absolute;z-index:100');
+    svgNode.appendChild(imgNode);
+    console.log(imgNode);
+
     printWindow.document.body.setAttribute('style', 'margin: 0 0 0 0');
     printWindow.document.body.appendChild(parentNode);
     printWindow.document.close();
