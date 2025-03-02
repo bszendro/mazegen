@@ -31,4 +31,6 @@ export interface DrawParams {
     cellHeight: number;
     /** Wall width */
     strokeWidth: number;
+    /** Whether to draw the background of the cells or not */
+    drawCells: boolean;
 };

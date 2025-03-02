@@ -79,17 +79,19 @@ export class SquareMaze {
         const height = cellHeight * this.rows + 2 * padding_y;
         painter.BeginDraw(width, height);
 
-        // Cells
-        for (let i = 0; i < this.rows; i++) {
-            for (let j = 0; j < this.cols; j++) {
-                const c = SquareMaze.nodeCenter({ i, j }, cellWidth, cellHeight, padding_x, padding_y);
-                const p = { center: c, cellWidth, cellHeight };
-                const p1 = P1(p);
-                const p2 = P2(p);
-                const p3 = P3(p);
-                const p4 = P4(p);
+        if (p.drawCells) {
+            // Cells
+            for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    const c = SquareMaze.nodeCenter({ i, j }, cellWidth, cellHeight, padding_x, padding_y);
+                    const p = { center: c, cellWidth, cellHeight };
+                    const p1 = P1(p);
+                    const p2 = P2(p);
+                    const p3 = P3(p);
+                    const p4 = P4(p);
 
-                painter.DrawPoly([p4, p3, p2, p1], SquareMaze.nodeStyle(this.nodes[i][j]));
+                    painter.DrawPoly([p4, p3, p2, p1], SquareMaze.nodeStyle(this.nodes[i][j]));
+                }
             }
         }
 
@@ -102,7 +104,7 @@ export class SquareMaze {
             const p4 = P4(p);
 
             const e4 = E4(this.edges, i, j);
-            if (SquareMaze.isEdgeVisible(e4)) {
+            if (this.nodes[i][j] !== NODE_INVALID && SquareMaze.isEdgeVisible(e4)) {
                 painter.DrawLine(p4, p1, SquareMaze.edgeStyle(e4));
             }
         }
@@ -116,7 +118,7 @@ export class SquareMaze {
             const p4 = P4(p);
 
             const e3 = E3(this.edges, i, j);
-            if (SquareMaze.isEdgeVisible(e3)) {
+            if (this.nodes[i][j] !== NODE_INVALID && SquareMaze.isEdgeVisible(e3)) {
                 painter.DrawLine(p3, p4, SquareMaze.edgeStyle(e3));
             }
         }
@@ -154,9 +156,9 @@ export class SquareMaze {
 
                 // Check if there is a valid neighbour
                 let next = this.nextNode({ i, j }, 1);
-                const b1 = !this.nodeExists(next) || this.nodes[next.i][next.j] !== NODE_INVALID;
+                const b1 = this.nodeExists(next) && this.nodes[next.i][next.j] !== NODE_INVALID;
                 next = this.nextNode({ i, j }, 2);
-                const b2 = !this.nodeExists(next) || this.nodes[next.i][next.j] !== NODE_INVALID;
+                const b2 = this.nodeExists(next) && this.nodes[next.i][next.j] !== NODE_INVALID;
                 if (!b1 && !b2) {
                     continue;
                 }
@@ -170,10 +172,10 @@ export class SquareMaze {
                 const e1 = E1(this.edges, i, j);
                 const e2 = E2(this.edges, i, j);
                 if (b1 && SquareMaze.isEdgeVisible(e1)) {
-                    painter.DrawLine(p1, p2, SquareMaze.edgeStyle(e1));
+                  painter.DrawLine(p1, p2, SquareMaze.edgeStyle(e1));
                 }
                 if (b2 && SquareMaze.isEdgeVisible(e2)) {
-                    painter.DrawLine(p2, p3, SquareMaze.edgeStyle(e2));
+                  painter.DrawLine(p2, p3, SquareMaze.edgeStyle(e2));
                 }
             }
         }

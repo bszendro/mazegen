@@ -91,19 +91,21 @@ export class HexMaze {
         const height = h / 2 + h * this.rows + padding_y * 2;
         painter.BeginDraw(width, height);
 
-        // Cells
-        for (let i = 0; i < this.rows; i++) {
-            for (let j = 0; j < this.cols; j++) {
-                const c = HexMaze.nodeCenter({ i, j }, rad, h, padding_x, padding_y);
-                const p = { center: c, rad, h };
-                const p1 = P1(p);
-                const p2 = P2(p);
-                const p3 = P3(p);
-                const p4 = P4(p);
-                const p5 = P5(p);
-                const p6 = P6(p);
+        if (p.drawCells) {
+            // Cells
+            for (let i = 0; i < this.rows; i++) {
+                for (let j = 0; j < this.cols; j++) {
+                    const c = HexMaze.nodeCenter({ i, j }, rad, h, padding_x, padding_y);
+                    const p = { center: c, rad, h };
+                    const p1 = P1(p);
+                    const p2 = P2(p);
+                    const p3 = P3(p);
+                    const p4 = P4(p);
+                    const p5 = P5(p);
+                    const p6 = P6(p);
 
-                painter.DrawPoly([p5, p4, p3, p2, p1, p6], HexMaze.nodeStyle(this.nodes[i][j]));
+                    painter.DrawPoly([p5, p4, p3, p2, p1, p6], HexMaze.nodeStyle(this.nodes[i][j]));
+                }
             }
         }
 
@@ -116,7 +118,7 @@ export class HexMaze {
             const p6 = P6(p);
 
             const e6 = E6(this.edges, i, j);
-            if (HexMaze.isEdgeVisible(e6)) {
+            if (this.nodes[i][j] !== NODE_INVALID && HexMaze.isEdgeVisible(e6)) {
                 painter.DrawLine(p6, p1, HexMaze.edgeStyle(e6));
             }
         }
@@ -131,7 +133,7 @@ export class HexMaze {
             const p5 = P5(p);
 
             const e4 = E4(this.edges, i, j);
-            if (HexMaze.isEdgeVisible(e4)) {
+            if (this.nodes[i][j] !== NODE_INVALID && HexMaze.isEdgeVisible(e4)) {
                 painter.DrawLine(p4, p5, HexMaze.edgeStyle(e4));
             }
         }
@@ -149,13 +151,13 @@ export class HexMaze {
             const e4 = E4(this.edges, i, j);
             const e5 = E5(this.edges, i, j);
             const e6 = E6(this.edges, i, j);
-            if (HexMaze.isEdgeVisible(e4)) {
+            if (this.nodes[i][j] !== NODE_INVALID && HexMaze.isEdgeVisible(e4)) {
                 painter.DrawLine(p4, p5, HexMaze.edgeStyle(e4));
             }
-            if (HexMaze.isEdgeVisible(e5)) {
+            if (this.nodes[i][j] !== NODE_INVALID && HexMaze.isEdgeVisible(e5)) {
                 painter.DrawLine(p5, p6, HexMaze.edgeStyle(e5));
             }
-            if (HexMaze.isEdgeVisible(e6)) {
+            if (this.nodes[i][j] !== NODE_INVALID && HexMaze.isEdgeVisible(e6)) {
                 painter.DrawLine(p6, p1, HexMaze.edgeStyle(e6));
             }
         }
@@ -169,7 +171,7 @@ export class HexMaze {
             const p6 = P6(p);
 
             const e5 = E5(this.edges, i, j);
-            if (HexMaze.isEdgeVisible(e5)) {
+            if (this.nodes[i][j] !== NODE_INVALID && HexMaze.isEdgeVisible(e5)) {
                 painter.DrawLine(p5, p6, HexMaze.edgeStyle(e5));
             }
         }
@@ -212,11 +214,11 @@ export class HexMaze {
 
                 // Check if there is a valid neighbour
                 let next = this.nextNode({ i, j }, 1);
-                const b1 = !this.nodeExists(next) || this.nodes[next.i][next.j] !== NODE_INVALID;
+                const b1 = this.nodeExists(next) && this.nodes[next.i][next.j] !== NODE_INVALID;
                 next = this.nextNode({ i, j }, 2);
-                const b2 = !this.nodeExists(next) || this.nodes[next.i][next.j] !== NODE_INVALID;
+                const b2 = this.nodeExists(next) && this.nodes[next.i][next.j] !== NODE_INVALID;
                 next = this.nextNode({ i, j }, 3);
-                const b3 = !this.nodeExists(next) || this.nodes[next.i][next.j] !== NODE_INVALID;
+                const b3 = this.nodeExists(next) && this.nodes[next.i][next.j] !== NODE_INVALID;
                 if (!b1 && !b2 && !b3) {
                     continue;
                 }

@@ -48,7 +48,7 @@ export class SvgPainter implements Painter {
     private setStyle(cssStyle: CSSStyleDeclaration, style: PaintStyle) {
       switch (style) {
         case PaintStyle.OpenCell:
-          cssStyle.fill = 'darkgray';
+          cssStyle.fill = 'white';
           break;
 
         case PaintStyle.VisitedCell:
