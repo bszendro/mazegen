@@ -74,6 +74,7 @@
       return;
     }
 
+    // Print the maze
     const svgDivNode = printWindow.document.createElement('div');
     svgDivNode.style.position = "absolute";
     const painter = new SvgPainter(svgDivNode, { strokeWidth: STROKE_WIDTH });
@@ -84,6 +85,7 @@
       drawCells: false,
     });
 
+    // Print the QR code
     const qrMargin = inchSizeToPixelSize({width: QR_MARGIN, height: QR_MARGIN});
     const qrDivNode = printWindow.document.createElement('div');
     qrDivNode.style.left = `${qrMargin.width}px`;
@@ -96,6 +98,7 @@
     imgNode.setAttribute('src', '/images/qr-maze4kids-netli.svg');
     qrDivNode.appendChild(imgNode);
 
+    // Add both to the document
     printWindow.document.body.setAttribute('style', 'margin: 0 0 0 0');
     printWindow.document.body.appendChild(svgDivNode);
     printWindow.document.body.appendChild(qrDivNode);
@@ -153,18 +156,22 @@
       <hr/>
 
       <div class="flex justify-around">
-        <Button outline class="text-gray-500" color="dark" size="md">
-          <div class="me-3">
-            <StarIcon />
-          </div>
-          <span>Rate</span>
-        </Button>
-        <Button outline class="text-gray-500" color="dark" size="md">
-          <div class="me-3">
-            <CoffeeIcon />
-          </div>
-          <span>Donate</span>
-        </Button>
+        <a href="{import.meta.env.VITE_GOOGLE_FORMS_URL}">
+          <Button outline class="text-gray-500" color="dark" size="md">
+            <div class="me-3">
+              <StarIcon />
+            </div>
+            <span>Rate</span>
+          </Button>
+        </a>
+        <a href="{import.meta.env.VITE_BUY_ME_COFFEE_URL}">
+          <Button outline class="text-gray-500" color="dark" size="md">
+            <div class="me-3">
+              <CoffeeIcon />
+            </div>
+            <span>Donate</span>
+          </Button>
+        </a>
       </div>
     </div>
   </Card>
