@@ -93,7 +93,7 @@
     const size = inchSizeToPixelSize({width: 0.787, height: 0.787});
     imgNode.setAttribute('width', `${size.width}px`);
     imgNode.setAttribute('height', `${size.height}px`);
-    imgNode.setAttribute('src', '/src/assets/qr-maze4kids-netli.svg');
+    imgNode.setAttribute('src', '/images/qr-maze4kids-netli.svg');
     qrDivNode.appendChild(imgNode);
 
     printWindow.document.body.setAttribute('style', 'margin: 0 0 0 0');

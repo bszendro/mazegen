@@ -14,6 +14,10 @@ export default defineConfig({
           src: 'MersenneTwister/mersenne-twister.js',
           dest: './'
         },
+        {
+          src: 'src/assets/qr-maze4kids-netli.svg',
+          dest: './images/'
+        }
       ],
     }),
   ],
