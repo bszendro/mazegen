@@ -1,47 +1,29 @@
 <script lang="ts">
   import logoIcon from './assets/logo44.svg'
-  import { Button, Card, Label, Navbar, NavBrand, Range, Select, Toast } from 'flowbite-svelte';
+  import { Navbar, NavBrand, Toast } from 'flowbite-svelte';
   import { CloseCircleSolid } from 'flowbite-svelte-icons';
-  import StarIcon from './lib/StarIcon.svelte';
-  import CoffeeIcon from './lib/CoffeeIcon.svelte';
   import { HexMaze } from './lib/maze/HexMaze';
   import { CreateMazeWilson } from './lib/maze/CreateMazeWilson';
   import { SvgPainter } from './lib/maze/SvgPainter';
-  import { getAreaSize, inchSizeToPixelSize, type PaperSize } from './lib/maze/PaperSize';
+  import { getAreaSize, inchSizeToPixelSize, type CellShape, type PaperSize } from './lib/maze/PaperSize';
   import { SquareMaze } from './lib/maze/SquareMaze';
   import { type GridSize } from './lib/maze/MazeGrid';
-
-  let selectedPaperSize: PaperSize = $state('a4');
-  const paperSizes = [
-    { value: 'a3', name: 'A3' },
-    { value: 'a4', name: 'A4' },
-    { value: 'a5', name: 'A5' }
-  ];
-
-  type CellShape = 'square' | 'hexagonal';
-
-  let selectedCellShape: CellShape = $state('square');
-  const cellShapes = [
-    { value: 'square', name: 'Square' },
-    { value: 'hexagonal', name: 'Hexagonal' },
-  ];
-
-  let cellSize = $state(40);
+  import DesignForm from './DesignForm.svelte';
 
   let openWindowError = $state(false);
 
-  function buildMaze() {
+  function buildMaze(paperSize: PaperSize, cellShape: CellShape, cellSize: number) {
     const QR_SIZE = 0.787; // ~2cm
     const QR_MARGIN = 0.196; // ~0.5cm
     const STROKE_WIDTH = 2;
 
-    const areaSize = getAreaSize(selectedPaperSize);
+    const areaSize = getAreaSize(paperSize);
     const qrSize = inchSizeToPixelSize({width: QR_SIZE + QR_MARGIN, height: QR_SIZE + QR_MARGIN});
 
     let maze;
     let gridSize: GridSize;
     let qrGridSize: GridSize;
-    switch (selectedCellShape) {
+    switch (cellShape) {
       case 'square': {
         gridSize = SquareMaze.ComputeGridSize(areaSize.width, areaSize.height, cellSize, cellSize, STROKE_WIDTH);
         maze = new SquareMaze(gridSize.rows, gridSize.cols);
@@ -129,50 +111,6 @@
     </Toast>
   {/if}
 
-  <Card class="m-auto">
-    <div class="flex flex-col space-y-6">
-      <h1 class="text-3xl text-gray-900 dark:text-white">Design your maze</h1>
+  <DesignForm onBuild={buildMaze} />
 
-      <Label class="space-y-2 text-gray-500">
-        <span>Paper Size</span>
-        <Select class="mt-2 my-selector" items={paperSizes} bind:value={selectedPaperSize} />
-      </Label>
-      <Label class="space-y-2 text-gray-500">
-        <span>Cell Shape</span>
-        <Select class="mt-2 my-selector" items={cellShapes} bind:value={selectedCellShape} />
-      </Label>
-      <Label class="space-y-2 text-gray-500">
-        <div class="flex items-start">
-          <span>Cell Size</span>
-          <span class="ms-auto">{cellSize}</span>
-        </div>
-        <Range size="lg" min="20" max="100" step="5" bind:value={cellSize} />
-      </Label>
-
-      <Button class="w-full" onclick={buildMaze}>
-        Build Maze
-      </Button>
-
-      <hr/>
-
-      <div class="flex justify-around">
-        <a href="{import.meta.env.VITE_GOOGLE_FORMS_URL}">
-          <Button outline class="text-gray-500" color="dark" size="md">
-            <div class="me-3">
-              <StarIcon />
-            </div>
-            <span>Rate</span>
-          </Button>
-        </a>
-        <a href="{import.meta.env.VITE_BUY_ME_COFFEE_URL}">
-          <Button outline class="text-gray-500" color="dark" size="md">
-            <div class="me-3">
-              <CoffeeIcon />
-            </div>
-            <span>Donate</span>
-          </Button>
-        </a>
-      </div>
-    </div>
-  </Card>
 </main>
