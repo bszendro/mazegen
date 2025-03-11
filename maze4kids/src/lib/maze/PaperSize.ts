@@ -8,6 +8,12 @@ export type PaperSize = 'a3' | 'a4' | 'a5';
 
 export type CellShape = 'square' | 'hexagonal';
 
+export interface BuildMazeParams {
+  paperSize: PaperSize;
+  cellShape: CellShape;
+  cellSize: number;
+}
+
 const MARGIN_X = 0.39; // ~1cm
 const MARGIN_Y = 0.39; // ~1cm
 const PPI = 96;

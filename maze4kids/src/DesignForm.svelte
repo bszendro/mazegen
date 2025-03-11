@@ -2,10 +2,10 @@
   import { Button, Card, Label, Range, Select } from 'flowbite-svelte';
   import StarIcon from './lib/StarIcon.svelte';
   import CoffeeIcon from './lib/CoffeeIcon.svelte';
-  import { type CellShape, type PaperSize } from './lib/maze/PaperSize';
+  import { type BuildMazeParams, type CellShape, type PaperSize } from './lib/maze/PaperSize';
 
   interface Props {
-    onBuild: (paperSize: PaperSize, cellShape: CellShape, cellSize: number) => void;
+    onBuild: (params: BuildMazeParams) => void;
   }
 
   const { onBuild }: Props = $props();
@@ -46,7 +46,10 @@
       <Range size="lg" min="20" max="100" step="5" bind:value={cellSize} />
     </Label>
 
-    <Button class="w-full" onclick={() => onBuild(selectedPaperSize, selectedCellShape, cellSize)}>
+    <Button class="w-full" onclick={() => onBuild({
+        paperSize: selectedPaperSize,
+        cellShape: selectedCellShape,
+        cellSize})}>
       Build Maze
     </Button>
 
