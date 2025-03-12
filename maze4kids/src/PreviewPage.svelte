@@ -4,6 +4,8 @@
     import { Toast } from 'flowbite-svelte';
     import { CloseCircleSolid } from 'flowbite-svelte-icons';
     import { buildMaze, BuildMazeResult } from "./lib/maze/BuildMaze";
+    import LeftArrowIcon from "./lib/LeftArrowIcon.svelte";
+    import PrinterIcon from "./lib/PrinterIcon.svelte";
 
     interface Props {
       buildParams: BuildMazeParams;
@@ -20,12 +22,16 @@
 </script>
 
 <div>
-  <div class="flex">
-    <Button class="" onclick={() => history.back()}>
-      BACK
+  <div class="flex w-full justify-between">
+    <Button class="m-4 pl-8" onclick={() => history.back()}>
+      <div class="me-3">
+        <LeftArrowIcon />
+      </div>
     </Button>
-    <Button class="" onclick={() => history.back()}>
-      Print
+    <Button class="m-4 pl-8" onclick={() => history.back()}>
+      <div class="me-3">
+        <PrinterIcon />
+      </div>
     </Button>
   </div>
 
